@@ -1,9 +1,9 @@
 // src/app/(app)/menu/page.tsx
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
-import { menuItems as initialMenuItems, categories } from "@/lib/data"
+import { menuItems as defaultMenuItems, categories } from "@/lib/data"
 import type { MenuItem as MenuItemType, MenuCategory } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -20,9 +20,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogClose,
-  DialogFooter
 } from "@/components/ui/dialog"
 import { MenuItemForm } from "@/components/menu/MenuItemForm"
 import { useToast } from "@/hooks/use-toast"
@@ -36,12 +33,15 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
+
+const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 
 export default function MenuPage() {
-  const [menuItems, setMenuItems] = useState<MenuItemType[]>(initialMenuItems)
+  const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItemType | undefined>(undefined)
@@ -49,23 +49,49 @@ export default function MenuPage() {
 
   const { toast } = useToast()
 
+  useEffect(() => {
+    try {
+      const storedItems = localStorage.getItem(MENU_ITEMS_STORAGE_KEY);
+      if (storedItems) {
+        setMenuItems(JSON.parse(storedItems));
+      } else {
+        setMenuItems(defaultMenuItems); // Seed with default data if nothing in localStorage
+        localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(defaultMenuItems));
+      }
+    } catch (error) {
+      console.error("Failed to load menu items from localStorage", error);
+      setMenuItems(defaultMenuItems); // Fallback to default
+    }
+    setIsLoading(false);
+  }, []);
+
+  const saveMenuItemsToLocalStorage = (items: MenuItemType[]) => {
+    try {
+      localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(items));
+    } catch (error) {
+      console.error("Failed to save menu items to localStorage", error);
+      toast({ title: "Error Saving Menu", description: "Could not save menu changes to local storage.", variant: "destructive"})
+    }
+  };
+
+
   const getCategoryName = (categoryId: string) => {
     return categories.find(cat => cat.id === categoryId)?.name || "Unknown"
   }
 
   const handleFormSubmit = (data: Omit<MenuItemType, "id"> & { id?: string }) => {
+    let updatedItems;
     if (editingItem && editingItem.id) {
-      // Edit existing item
-      setMenuItems(prevItems =>
-        prevItems.map(item => (item.id === editingItem.id ? { ...item, ...data, id: editingItem.id } : item))
-      )
+      updatedItems = menuItems.map(item => (item.id === editingItem.id ? { ...item, ...data, id: editingItem.id } : item));
+      setMenuItems(updatedItems);
       toast({ title: "Menu Item Updated", description: `${data.name} has been updated.` })
     } else {
-      // Add new item
-      const newItemId = `item${Date.now()}` // Simple ID generation
-      setMenuItems(prevItems => [...prevItems, { ...data, id: newItemId }])
+      const newItemId = `item${Date.now()}` 
+      updatedItems = [...menuItems, { ...data, id: newItemId }];
+      setMenuItems(updatedItems);
       toast({ title: "Menu Item Added", description: `${data.name} has been added to the menu.` })
     }
+    saveMenuItemsToLocalStorage(updatedItems);
     setIsFormOpen(false)
     setEditingItem(undefined)
   }
@@ -81,9 +107,11 @@ export default function MenuPage() {
 
   const handleDeleteItem = () => {
     if (!itemToDelete) return;
-    setMenuItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id))
+    const updatedItems = menuItems.filter(item => item.id !== itemToDelete.id);
+    setMenuItems(updatedItems);
+    saveMenuItemsToLocalStorage(updatedItems);
     toast({ title: "Menu Item Deleted", description: `${itemToDelete.name} has been removed from the menu.`, variant: "destructive" })
-    setItemToDelete(null); // Close dialog
+    setItemToDelete(null); 
   }
 
   const filteredMenuItems = useMemo(() => {
@@ -93,16 +121,27 @@ export default function MenuPage() {
     )
   }, [menuItems, searchTerm])
 
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+          <Skeleton className="h-10 w-64" />
+          <Skeleton className="h-10 w-36" />
+        </div>
+        <Skeleton className="h-10 w-1/2" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-headline font-bold text-primary">Menu Management</h1>
         <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingItem(undefined); }}>
-          <DialogTrigger asChild>
-            <Button variant="default" onClick={() => { setEditingItem(undefined); setIsFormOpen(true); }}>
-              <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
-            </Button>
-          </DialogTrigger>
+          <Button variant="default" onClick={() => { setEditingItem(undefined); setIsFormOpen(true); }}>
+            <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
+          </Button>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-headline text-xl">{editingItem ? "Edit Menu Item" : "Add New Menu Item"}</DialogTitle>

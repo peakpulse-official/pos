@@ -2,12 +2,14 @@
 "use client"
 
 import type { OrderItem } from "@/lib/types"
+import { useSettings } from "@/contexts/SettingsContext"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { MinusCircle, PlusCircle, Trash2, ShoppingCart, CheckCircle } from "lucide-react"
 import Image from "next/image"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface CurrentOrderPanelProps {
   orderItems: OrderItem[]
@@ -24,9 +26,12 @@ export function CurrentOrderPanel({
   onPlaceOrder,
   onClearOrder,
 }: CurrentOrderPanelProps) {
+  const { settings, isLoading: settingsLoading } = useSettings();
+
   const subtotal = orderItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const vatRate = 0.13 // 13% VAT
-  const serviceChargeRate = 0.10 // 10% Service Charge
+  
+  const vatRate = settingsLoading ? 0.13 : settings.vatRate;
+  const serviceChargeRate = settingsLoading ? 0.10 : settings.serviceChargeRate;
 
   const vatAmount = subtotal * vatRate
   const serviceChargeAmount = subtotal * serviceChargeRate
@@ -85,30 +90,40 @@ export function CurrentOrderPanel({
       </CardContent>
       {orderItems.length > 0 && (
         <CardFooter className="flex flex-col p-4 border-t">
-          <div className="w-full space-y-1 text-sm mb-4">
-            <div className="flex justify-between">
-              <span>Subtotal:</span>
-              <span>NPR {subtotal.toFixed(2)}</span>
+         {settingsLoading ? (
+            <div className="w-full space-y-2 mb-4">
+              <Skeleton className="h-4 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-4 w-2/3" />
+              <Separator className="my-1" />
+              <Skeleton className="h-6 w-full" />
             </div>
-            <div className="flex justify-between">
-              <span>VAT (13%):</span>
-              <span>NPR {vatAmount.toFixed(2)}</span>
+          ) : (
+            <div className="w-full space-y-1 text-sm mb-4">
+              <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>NPR {subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>VAT ({ (vatRate * 100).toFixed(0) }%):</span>
+                <span>NPR {vatAmount.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Service Charge ({ (serviceChargeRate * 100).toFixed(0) }%):</span>
+                <span>NPR {serviceChargeAmount.toFixed(2)}</span>
+              </div>
+              <Separator className="my-1" />
+              <div className="flex justify-between font-bold text-base text-primary">
+                <span>Total:</span>
+                <span>NPR {total.toFixed(2)}</span>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span>Service Charge (10%):</span>
-              <span>NPR {serviceChargeAmount.toFixed(2)}</span>
-            </div>
-            <Separator className="my-1" />
-            <div className="flex justify-between font-bold text-base text-primary">
-              <span>Total:</span>
-              <span>NPR {total.toFixed(2)}</span>
-            </div>
-          </div>
+          )}
           <div className="w-full space-y-2">
-            <Button onClick={onPlaceOrder} className="w-full text-base py-3" size="lg">
+            <Button onClick={onPlaceOrder} className="w-full text-base py-3" size="lg" disabled={settingsLoading}>
               <CheckCircle className="mr-2 h-5 w-5" /> Place Order
             </Button>
-            <Button onClick={onClearOrder} variant="outline" className="w-full">
+            <Button onClick={onClearOrder} variant="outline" className="w-full" disabled={settingsLoading}>
               Clear Order
             </Button>
           </div>

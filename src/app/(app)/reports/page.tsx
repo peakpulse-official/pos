@@ -3,35 +3,70 @@
 
 import { useState, useEffect } from "react"
 import { mockDailySales } from "@/lib/data"
-import type { DailySales } from "@/lib/types"
+import type { DailySales, Order } from "@/lib/types"
 import { SalesSummaryCard } from "@/components/reports/SalesSummaryCard"
 import { PopularItemsChart } from "@/components/reports/PopularItemsChart"
-import { DollarSign, ShoppingBag, Users, TrendingUp, BarChartBig, Coffee, Utensils } from "lucide-react"
+import { DollarSign, ShoppingBag, TrendingUp, Utensils } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { format } from "date-fns"
+import { Skeleton } from "@/components/ui/skeleton"
+
+const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
 
 export default function ReportsPage() {
-  // In a real app, this data would be fetched
-  const [salesData, setSalesData] = useState<DailySales>(mockDailySales)
+  const [salesData, setSalesData] = useState<DailySales | null>(null)
   const [currentDate, setCurrentDate] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     setCurrentDate(format(new Date(), "MMMM d, yyyy"));
+    try {
+      const storedOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
+      const storedOrders: Order[] = storedOrdersRaw ? JSON.parse(storedOrdersRaw) : [];
+      
+      const paidOrders = storedOrders.filter(order => order.status === 'paid');
+      const totalRevenue = paidOrders.reduce((sum, order) => sum + order.total, 0);
+      const totalOrders = paidOrders.length;
+
+      // For popular items and item sales details, we'll still use mock data for this iteration.
+      // A more robust solution would aggregate from all order items in localStorage.
+      const updatedSalesData: DailySales = {
+        ...mockDailySales, // Use mock for popular items structure
+        totalRevenue: totalRevenue,
+        totalOrders: totalOrders,
+        date: new Date().toISOString().split('T')[0],
+      };
+      setSalesData(updatedSalesData);
+
+    } catch (error) {
+      console.error("Error processing orders for reports", error);
+      setSalesData(mockDailySales); // Fallback to full mock data on error
+    }
+    setIsLoading(false);
   }, []);
 
-  if (!salesData) {
-    // Basic loading state or skeleton
+  if (isLoading || !salesData) {
     return (
-      <div className="space-y-6">
-        <h1 className="text-3xl font-headline font-bold text-primary">Sales Reports</h1>
-        <p>Loading sales data...</p>
+      <div className="space-y-8">
+        <div>
+          <Skeleton className="h-10 w-1/2 mb-1" />
+          <Skeleton className="h-4 w-1/3" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
+        </div>
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-96 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
       </div>
     )
   }
 
   const averageOrderValue = salesData.totalOrders > 0 ? salesData.totalRevenue / salesData.totalOrders : 0;
+  const topMockItem = mockDailySales.popularItems[0]; // Still using mock for this specific card
 
   return (
     <div className="space-y-8">
@@ -45,38 +80,37 @@ export default function ReportsPage() {
           title="Total Revenue" 
           value={salesData.totalRevenue.toFixed(2)} 
           icon={DollarSign} 
-          description="Total income from all sales."
-          trend="+2.5% vs yesterday"
+          description="Total income from all paid sales."
+          // Trend data could be calculated if historical data was stored and compared
         />
         <SalesSummaryCard 
-          title="Total Orders" 
+          title="Total Paid Orders" 
           value={salesData.totalOrders} 
           icon={ShoppingBag} 
-          description="Number of orders processed."
-          trend="-1.0% vs yesterday"
+          description="Number of paid orders processed."
         />
         <SalesSummaryCard 
           title="Average Order Value" 
           value={averageOrderValue.toFixed(2)} 
           icon={TrendingUp} 
-          description="Average amount spent per order."
-          trend="+0.5% vs yesterday"
+          description="Avg. amount per paid order."
         />
          <SalesSummaryCard 
-          title="Top Item" 
-          value={salesData.popularItems[0]?.name || 'N/A'}
+          title="Top Item (Mock)" 
+          value={topMockItem?.name || 'N/A'}
           icon={Utensils} 
-          description={`Sold ${salesData.popularItems[0]?.quantitySold || 0} times`}
+          description={`Sold ${topMockItem?.quantitySold || 0} times (mock data)`}
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-2">
-        <PopularItemsChart data={salesData.popularItems} />
+        {/* PopularItemsChart still uses mockDailySales.popularItems for its detailed breakdown */}
+        <PopularItemsChart data={mockDailySales.popularItems} /> 
         
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="font-headline text-xl">Item Sales Details</CardTitle>
-            <CardDescription>Breakdown of sales by item for today.</CardDescription>
+            <CardTitle className="font-headline text-xl">Item Sales Details (Mock)</CardTitle>
+            <CardDescription>Breakdown of sales by item (using mock data for detail).</CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[350px]">
@@ -89,10 +123,8 @@ export default function ReportsPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {salesData.popularItems.map((item) => {
-                    // Find item price (mocked logic, in real app, join with menu items)
-                    const menuItem = mockDailySales.popularItems.find(mi => mi.itemId === item.itemId);
-                    const price = menuItem ? (Math.random() * 300 + 50) : 0; // Mock price if not found
+                  {mockDailySales.popularItems.map((item) => {
+                    const price = (Math.random() * 300 + 50); 
                     const revenue = item.quantitySold * price;
                     return (
                       <TableRow key={item.itemId}>

@@ -1,22 +1,44 @@
 // src/app/(app)/billing/page.tsx
 "use client"
 
-import { useState, useMemo } from "react"
-import { initialOrders, menuItems } from "@/lib/data"
+import { useState, useMemo, useEffect } from "react"
+import { initialOrders as defaultInitialOrders } from "@/lib/data" // Keep as fallback/seed
 import type { Order, Bill } from "@/lib/types"
 import { BillDisplay } from "@/components/billing/BillDisplay"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { format, parseISO } from "date-fns"
 import { Search, ListOrdered, FileText } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
 
 export default function BillingPage() {
-  const [orders, setOrders] = useState<Order[]>(initialOrders)
+  const [orders, setOrders] = useState<Order[]>([])
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+
+  useEffect(() => {
+    try {
+      const storedOrders = localStorage.getItem(ORDERS_STORAGE_KEY);
+      if (storedOrders) {
+        setOrders(JSON.parse(storedOrders));
+      } else {
+        // Optional: Seed with default orders if localStorage is empty
+        // setOrders(defaultInitialOrders); 
+        // localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(defaultInitialOrders));
+        setOrders([]); // Or start with an empty list
+      }
+    } catch (error) {
+      console.error("Failed to load orders from localStorage", error);
+      setOrders([]); // Fallback to empty or defaultInitialOrders
+    }
+    setIsLoading(false);
+  }, []);
 
   const generateBill = (order: Order): Bill => {
     const billNumber = `BILL-${order.orderNumber.replace('ORD', '')}-${Date.now().toString().slice(-4)}`
@@ -42,12 +64,39 @@ export default function BillingPage() {
 
   const getStatusBadgeVariant = (status: Order['status']): "default" | "secondary" | "destructive" | "outline" => {
     switch(status) {
-      case 'paid': return 'default'; // Using primary color for paid
+      case 'paid': return 'default'; 
       case 'completed': return 'secondary';
       case 'pending': return 'outline';
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 h-full">
+        <div className="md:col-span-1 flex flex-col">
+          <Card className="shadow-lg flex-grow flex flex-col">
+            <CardHeader className="border-b">
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </CardHeader>
+            <CardContent className="p-0 flex-grow overflow-hidden">
+              <div className="p-3 space-y-3">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-20 w-full" />)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        <div className="md:col-span-2">
+          <Card className="flex flex-col items-center justify-center min-h-[400px] text-center shadow-lg h-full">
+            <Skeleton className="h-16 w-16 mb-4 rounded-full" />
+            <Skeleton className="h-8 w-1/2 mb-2" />
+            <Skeleton className="h-4 w-3/4" />
+          </Card>
+        </div>
+      </div>
+    );
   }
 
 
@@ -71,7 +120,7 @@ export default function BillingPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0 flex-grow overflow-hidden">
-            <ScrollArea className="h-[calc(100vh-16rem)] md:h-full p-3"> {/* Adjust height as needed */}
+            <ScrollArea className="h-[calc(100vh-16rem)] md:h-full p-3">
               {filteredOrders.length > 0 ? (
                 <ul className="space-y-3">
                   {filteredOrders.map((order) => (
@@ -96,8 +145,18 @@ export default function BillingPage() {
                 </ul>
               ) : (
                 <div className="text-center py-10 text-muted-foreground">
-                  <Search className="mx-auto h-10 w-10 mb-2" />
-                  <p className="text-sm">No orders match your search.</p>
+                  {orders.length === 0 ? (
+                    <>
+                      <ListOrdered className="mx-auto h-10 w-10 mb-2" />
+                      <p className="text-sm">No orders found.</p>
+                      <p className="text-xs">Place some orders on the 'Order' page to see them here.</p>
+                    </>
+                  ) : (
+                    <>
+                      <Search className="mx-auto h-10 w-10 mb-2" />
+                      <p className="text-sm">No orders match your search.</p>
+                    </>
+                  )}
                 </div>
               )}
             </ScrollArea>

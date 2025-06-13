@@ -1,9 +1,9 @@
 // src/app/(app)/order/page.tsx
 "use client"
 
-import { useState, useMemo } from "react"
-import { categories, menuItems as allMenuItems } from "@/lib/data"
-import type { MenuItem as MenuItemType, OrderItem, MenuCategory } from "@/lib/types"
+import { useState, useMemo, useEffect } from "react"
+import { categories, menuItems as defaultMenuItems } from "@/lib/data"
+import type { MenuItem as MenuItemType, OrderItem, MenuCategory, Order } from "@/lib/types"
 import { MenuItemCard } from "@/components/order/MenuItemCard"
 import { CurrentOrderPanel } from "@/components/order/CurrentOrderPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -11,12 +11,36 @@ import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search } from "lucide-react"
+import { useSettings } from "@/contexts/SettingsContext" // Import useSettings
+import { Skeleton } from "@/components/ui/skeleton"
+
+const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
+const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
 
 export default function OrderPage() {
   const [currentOrder, setCurrentOrder] = useState<OrderItem[]>([])
+  const [allMenuItems, setAllMenuItems] = useState<MenuItemType[]>([]);
+  const [isLoadingMenuItems, setIsLoadingMenuItems] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<string>(categories[0]?.id || "all")
   const { toast } = useToast()
+  const { settings, isLoading: settingsLoading } = useSettings(); // Get settings
+
+  useEffect(() => {
+    try {
+      const storedItems = localStorage.getItem(MENU_ITEMS_STORAGE_KEY);
+      if (storedItems) {
+        setAllMenuItems(JSON.parse(storedItems));
+      } else {
+        setAllMenuItems(defaultMenuItems);
+        localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(defaultMenuItems));
+      }
+    } catch (error) {
+      console.error("Failed to load menu items from localStorage", error);
+      setAllMenuItems(defaultMenuItems);
+    }
+    setIsLoadingMenuItems(false);
+  }, []);
 
   const handleAddItem = (item: MenuItemType) => {
     setCurrentOrder((prevOrder) => {
@@ -50,11 +74,11 @@ export default function OrderPage() {
   }
 
   const handleRemoveItem = (itemId: string) => {
+    const itemToRemove = allMenuItems.find(item => item.id === itemId);
     setCurrentOrder((prevOrder) => prevOrder.filter((item) => item.id !== itemId))
-    const removedItem = allMenuItems.find(item => item.id === itemId);
-    if (removedItem) {
+    if (itemToRemove) {
       toast({
-        title: `${removedItem.name} removed`,
+        title: `${itemToRemove.name} removed`,
         description: "Item removed from your order.",
         variant: "destructive",
       })
@@ -62,14 +86,55 @@ export default function OrderPage() {
   }
 
   const handlePlaceOrder = () => {
-    // In a real app, this would send the order to a backend
-    console.log("Placing order:", currentOrder)
-    toast({
-      title: "Order Placed!",
-      description: `Total: NPR ${currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0) * 1.23}`, // Assuming 13% VAT and 10% SC
-      variant: "default",
-    })
-    setCurrentOrder([]) // Clear order after placing
+    if (settingsLoading || currentOrder.length === 0) {
+      toast({
+        title: "Cannot Place Order",
+        description: settingsLoading ? "Settings are still loading." : "Your order is empty.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const subtotal = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const vatAmount = subtotal * settings.vatRate;
+    const serviceChargeAmount = subtotal * settings.serviceChargeRate;
+    const total = subtotal + vatAmount + serviceChargeAmount;
+
+    const newOrder: Order = {
+      id: `order${Date.now()}`,
+      orderNumber: `ORD${Date.now().toString().slice(-6)}`,
+      items: currentOrder,
+      subtotal,
+      vat: vatAmount,
+      vatRate: settings.vatRate,
+      serviceCharge: serviceChargeAmount,
+      serviceChargeRate: settings.serviceChargeRate,
+      total,
+      status: 'paid', // Default to paid for simplicity in this flow
+      createdAt: new Date().toISOString(),
+      // customerName and paymentMethod can be added via a modal or further UI enhancements
+    };
+
+    try {
+      const existingOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
+      const existingOrders: Order[] = existingOrdersRaw ? JSON.parse(existingOrdersRaw) : [];
+      const updatedOrders = [newOrder, ...existingOrders]; // Add new order to the beginning
+      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+      
+      toast({
+        title: "Order Placed!",
+        description: `Total: NPR ${total.toFixed(2)}. Order #${newOrder.orderNumber}`,
+        variant: "default",
+      })
+      setCurrentOrder([]) // Clear order after placing
+    } catch (error) {
+      console.error("Failed to save order to localStorage", error);
+      toast({
+        title: "Error Placing Order",
+        description: "Could not save your order. Please try again.",
+        variant: "destructive",
+      })
+    }
   }
 
   const handleClearOrder = () => {
@@ -82,11 +147,52 @@ export default function OrderPage() {
   }
 
   const filteredMenuItems = useMemo(() => {
+    if (isLoadingMenuItems) return [];
     return allMenuItems.filter(item =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (activeTab === "all" || item.category === activeTab)
     )
-  }, [searchTerm, activeTab])
+  }, [allMenuItems, searchTerm, activeTab, isLoadingMenuItems])
+
+  if (isLoadingMenuItems || settingsLoading) {
+     return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 h-full">
+            <div className="lg:col-span-2 flex flex-col">
+                <div className="mb-4 sticky top-0 bg-background/80 backdrop-blur-sm py-3 z-10">
+                    <Skeleton className="h-10 w-full mb-3" />
+                    <div className="flex space-x-2 pb-2">
+                        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-9 w-24" />)}
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, i) => (
+                        <Card key={i} className="flex flex-col overflow-hidden">
+                            <Skeleton className="h-40 w-full" />
+                            <CardContent className="p-4 flex-grow space-y-2">
+                                <Skeleton className="h-6 w-3/4" />
+                                <Skeleton className="h-4 w-full" />
+                                <Skeleton className="h-4 w-1/2" />
+                            </CardContent>
+                            <CardFooter className="p-4 border-t">
+                                <Skeleton className="h-10 w-full" />
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+            <div className="lg:col-span-1">
+                <Card className="sticky top-16 h-[calc(100vh-8rem)] flex flex-col">
+                    <CardHeader className="border-b"><Skeleton className="h-6 w-1/2" /></CardHeader>
+                    <CardContent className="p-4 flex-grow"><Skeleton className="h-20 w-full" /></CardContent>
+                    <CardFooter className="flex flex-col p-4 border-t space-y-2">
+                        <Skeleton className="h-10 w-full" />
+                        <Skeleton className="h-10 w-full" />
+                    </CardFooter>
+                </Card>
+            </div>
+        </div>
+     );
+  }
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 h-full">
@@ -117,7 +223,7 @@ export default function OrderPage() {
           </Tabs>
         </div>
         
-        <ScrollArea className="flex-grow pr-2 -mr-2"> {/* pr and -mr for custom scrollbar spacing if needed */}
+        <ScrollArea className="flex-grow pr-2 -mr-2"> 
           {filteredMenuItems.length > 0 ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredMenuItems.map((item) => (
