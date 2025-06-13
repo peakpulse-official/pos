@@ -303,7 +303,7 @@ export default function SettingsPage() {
             <p className="text-muted-foreground">No printers configured yet.</p>
           ) : (
             <Table>
-              <TableHeader> <TableRow> <TableHead>Name</TableHead> <TableHead>Type</TableHead> <TableHead className="text-center">Default</TableHead> <TableHead className="text-right">Actions</TableHead> </TableRow> </TableHeader>
+              <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead className="text-center">Default</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {settings.printers.map((printer) => (
                   <TableRow key={printer.id}>
@@ -364,7 +364,7 @@ export default function SettingsPage() {
             <p className="text-muted-foreground">No users configured yet.</p>
           ) : (
             <Table>
-              <TableHeader> <TableRow> <TableHead>Username</TableHead> <TableHead>Role</TableHead> <TableHead className="text-right">Actions</TableHead> </TableRow> </TableHeader>
+              <TableHeader><TableRow><TableHead>Username</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {settings.users.map((user) => (
                   <TableRow key={user.id}>
