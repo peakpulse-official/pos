@@ -342,7 +342,7 @@ export default function SetupGuidePage() {
           </p>
         </CardContent>
         <CardFooter>
-            <Link href="/order" passHref legacyBehavior>
+            <Link href="/order">
                 <Button variant="default">Back to Order Page</Button>
             </Link>
         </CardFooter>
