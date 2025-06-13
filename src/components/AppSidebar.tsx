@@ -20,10 +20,10 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  SidebarTrigger,
+  // SidebarTrigger, // SidebarTrigger is in AppLayout, not used directly here for toggling
   useSidebar,
-} from "@/components/ui/sidebar" // Assuming this is the correct path to your Sidebar component
-import { Button } from "@/components/ui/button"
+} from "@/components/ui/sidebar" 
+// import { Button } from "@/components/ui/button" // Not directly used
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -53,32 +53,28 @@ export function AppSidebar() {
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={pathname.startsWith(item.href)}
-                  tooltip={item.label}
-                  className="justify-start"
-                >
-                  <a>
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </a>
-                </SidebarMenuButton>
-              </Link>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith(item.href)}
+                tooltip={item.label}
+                className="justify-start"
+              >
+                <Link href={item.href}>
+                  <item.icon />
+                  <span>{item.label}</span>
+                </Link>
+              </SidebarMenuButton>
             </SidebarMenuItem>
           ))}
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <Link href="/settings">
-            <SidebarMenuButton asChild tooltip="Settings" className="justify-start">
-                 <a>
-                    <Settings />
-                    <span>Settings</span>
-                </a>
-            </SidebarMenuButton>
-        </Link>
+        <SidebarMenuButton asChild tooltip="Settings" className="justify-start">
+            <Link href="/settings">
+                <Settings />
+                <span>Settings</span>
+            </Link>
+        </SidebarMenuButton>
       </SidebarFooter>
     </Sidebar>
   )
