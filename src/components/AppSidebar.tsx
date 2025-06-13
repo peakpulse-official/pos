@@ -1,3 +1,4 @@
+
 // src/components/AppSidebar.tsx
 "use client"
 
@@ -11,6 +12,7 @@ import {
   Sparkles,
   ChefHat,
   Settings,
+  Rocket, // Added Rocket icon
 } from "lucide-react"
 import {
   Sidebar,
@@ -20,10 +22,8 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarFooter,
-  // SidebarTrigger, // SidebarTrigger is in AppLayout, not used directly here for toggling
   useSidebar,
 } from "@/components/ui/sidebar" 
-// import { Button } from "@/components/ui/button" // Not directly used
 import { cn } from "@/lib/utils"
 
 const navItems = [
@@ -32,6 +32,7 @@ const navItems = [
   { href: "/billing", label: "Billing", icon: Printer },
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/recommendations", label: "AI Recommends", icon: Sparkles },
+  { href: "/setup-guide", label: "Setup Guide", icon: Rocket }, // Added Setup Guide link
 ]
 
 export function AppSidebar() {
@@ -69,7 +70,12 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <SidebarMenuButton asChild tooltip="Settings" className="justify-start">
+        <SidebarMenuButton 
+          asChild 
+          tooltip="Settings" 
+          className="justify-start"
+          isActive={pathname.startsWith('/settings')}
+        >
             <Link href="/settings">
                 <Settings />
                 <span>Settings</span>
@@ -79,3 +85,5 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
+
+    
