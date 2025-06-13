@@ -7,6 +7,7 @@ export interface MenuItem {
   category: string;
   imageUrl?: string;
   description?: string;
+  recipe?: string; // New field for recipe
   dataAiHint?: string; 
 }
 

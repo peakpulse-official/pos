@@ -12,13 +12,13 @@ export const categories: MenuCategory[] = [
 
 // Default menu items, used to seed localStorage if empty
 export const menuItems: MenuItem[] = [
-  { id: 'item1', name: 'Espresso', price: 150, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'coffee cup', description: 'Strong black coffee.' },
+  { id: 'item1', name: 'Espresso', price: 150, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'coffee cup', description: 'Strong black coffee.', recipe: '1. Grind coffee beans. 2. Tamp grounds. 3. Brew with espresso machine for 25-30 seconds. 4. Serve immediately.' },
   { id: 'item2', name: 'Latte', price: 200, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'latte art', description: 'Espresso with steamed milk.' },
-  { id: 'item3', name: 'Nepali Tea (Chiya)', price: 80, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'tea cup', description: 'Traditional Nepali milk tea.' },
+  { id: 'item3', name: 'Nepali Tea (Chiya)', price: 80, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'tea cup', description: 'Traditional Nepali milk tea.', recipe: '1. Boil water with tea leaves, ginger, cardamom, and cloves. 2. Add milk and sugar. 3. Simmer for 5-7 minutes. 4. Strain and serve hot.' },
   { id: 'item14', name: 'Americano', price: 170, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'black coffee', description: 'Espresso with hot water.' },
   { id: 'item15', name: 'Cappuccino', price: 220, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'frothy coffee', description: 'Espresso, steamed milk, and foam.' },
   { id: 'item4', name: 'Samosa (2 pcs)', price: 100, category: 'cat2', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'samosa snack', description: 'Crispy pastry with spiced potato filling.' },
-  { id: 'item5', name: 'Chicken Mo:Mo (Steamed)', price: 250, category: 'cat2', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'momo dumplings', description: 'Nepali steamed chicken dumplings.' },
+  { id: 'item5', name: 'Chicken Mo:Mo (Steamed)', price: 250, category: 'cat2', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'momo dumplings', description: 'Nepali steamed chicken dumplings.', recipe: '1. Prepare chicken filling with minced chicken, onions, ginger, garlic, and spices. 2. Make dough and roll into small circles. 3. Fill and pleat dumplings. 4. Steam for 10-12 minutes. 5. Serve with achar (dipping sauce).' },
   { id: 'item6', name: 'Veg Pakora', price: 180, category: 'cat2', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'pakora fritters', description: 'Mixed vegetable fritters.' },
   { id: 'item16', name: 'Paneer Tikka', price: 300, category: 'cat2', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'paneer tikka', description: 'Grilled cottage cheese cubes.' },
   { id: 'item7', name: 'Chicken Thukpa', price: 350, category: 'cat3', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'noodle soup', description: 'Hearty Tibetan noodle soup with chicken.' },
@@ -50,7 +50,7 @@ export const initialOrders: Order[] = [
     vat: ((200 * 1) + (100 * 2)) * 0.13,
     serviceChargeRate: 0.10,
     serviceCharge: ((200 * 1) + (100 * 2)) * 0.10,
-    total: ((200 * 1) + (100 * 2)) * 1.23, 
+    total: ((200 * 1) + (100 * 2)) * (1 + 0.13 + 0.10), 
     status: 'paid', 
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
     customerName: 'Hari Sharma',
@@ -69,7 +69,7 @@ export const initialOrders: Order[] = [
     vat: ((250 * 1) + (400 * 1) + (80 * 2)) * 0.13,
     serviceChargeRate: 0.10,
     serviceCharge: ((250 * 1) + (400 * 1) + (80 * 2)) * 0.10,
-    total: ((250 * 1) + (400 * 1) + (80 * 2)) * 1.23,
+    total: ((250 * 1) + (400 * 1) + (80 * 2)) * (1 + 0.13 + 0.10),
     status: 'completed', 
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), 
     customerName: 'Sita Rai',
@@ -80,7 +80,7 @@ export const initialOrders: Order[] = [
 export const mockDailySales: DailySales = {
   date: new Date().toISOString().split('T')[0],
   totalRevenue: initialOrders.reduce((sum, order) => sum + (order.status === 'paid' ? order.total : 0), 0),
-  totalOrders: initialOrders.length,
+  totalOrders: initialOrders.filter(order => order.status === 'paid').length,
   popularItems: [
     { itemId: 'item2', name: 'Latte', quantitySold: 10 },
     { itemId: 'item5', name: 'Chicken Mo:Mo (Steamed)', quantitySold: 8 },

@@ -20,10 +20,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
+  DialogClose
 } from "@/components/ui/dialog"
 import { MenuItemForm } from "@/components/menu/MenuItemForm"
 import { useToast } from "@/hooks/use-toast"
-import { PlusCircle, Edit, Trash2, Search, PackageOpen } from "lucide-react"
+import { PlusCircle, Edit, Trash2, Search, PackageOpen, ReceiptText } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,18 +40,20 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
-  const [categories, setCategories] = useState<MenuCategory[]>(defaultCategories); // Assuming categories are relatively static
+  const [categories, setCategories] = useState<MenuCategory[]>(defaultCategories);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItemType | undefined>(undefined)
   const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null);
+  const [recipeItem, setRecipeItem] = useState<MenuItemType | null>(null); // For recipe dialog
 
   const { toast } = useToast()
 
@@ -59,12 +63,12 @@ export default function MenuPage() {
       if (storedItems) {
         setMenuItems(JSON.parse(storedItems));
       } else {
-        setMenuItems(defaultMenuItems); // Seed with default data if nothing in localStorage
+        setMenuItems(defaultMenuItems); 
         localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(defaultMenuItems));
       }
     } catch (error) {
       console.error("Failed to load menu items from localStorage", error);
-      setMenuItems(defaultMenuItems); // Fallback to default
+      setMenuItems(defaultMenuItems);
     }
     setIsLoading(false);
   }, []);
@@ -77,7 +81,6 @@ export default function MenuPage() {
       toast({ title: "Error Saving Menu", description: "Could not save menu changes to local storage.", variant: "destructive"})
     }
   };
-
 
   const getCategoryName = (categoryId: string) => {
     return categories.find(cat => cat.id === categoryId)?.name || "Unknown"
@@ -137,6 +140,12 @@ export default function MenuPage() {
   const activeCategories = useMemo(() => {
     return categories.filter(cat => itemsByCategory[cat.id] && itemsByCategory[cat.id].length > 0);
   }, [itemsByCategory, categories]);
+
+  const getRecipeSnippet = (recipe?: string, maxLength = 60) => {
+    if (!recipe) return "";
+    if (recipe.length <= maxLength) return recipe;
+    return recipe.substring(0, maxLength) + "...";
+  }
 
 
   if (isLoading) {
@@ -208,6 +217,7 @@ export default function MenuPage() {
                         <TableRow>
                           <TableHead className="w-[80px] hidden sm:table-cell">Image</TableHead>
                           <TableHead>Name</TableHead>
+                          <TableHead>Recipe Snippet</TableHead>
                           <TableHead className="text-right">Price (NPR)</TableHead>
                           <TableHead className="text-center w-[120px]">Actions</TableHead>
                         </TableRow>
@@ -232,6 +242,20 @@ export default function MenuPage() {
                               )}
                             </TableCell>
                             <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                              {item.recipe ? (
+                                <>
+                                  {getRecipeSnippet(item.recipe)}
+                                  {item.recipe.length > 60 && (
+                                    <Button variant="link" size="sm" className="p-0 h-auto ml-1 text-xs" onClick={() => setRecipeItem(item)}>
+                                      View
+                                    </Button>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="italic">No recipe</span>
+                              )}
+                            </TableCell>
                             <TableCell className="text-right">{item.price.toFixed(2)}</TableCell>
                             <TableCell className="text-center">
                               <div className="flex justify-center gap-2">
@@ -286,6 +310,26 @@ export default function MenuPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+      )}
+
+      {recipeItem && (
+        <Dialog open={!!recipeItem} onOpenChange={() => setRecipeItem(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-headline text-xl flex items-center">
+                <ReceiptText className="mr-2 h-6 w-6 text-primary" /> Recipe for {recipeItem.name}
+              </DialogTitle>
+            </DialogHeader>
+            <ScrollArea className="max-h-[60vh] mt-4">
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap p-1">
+                {recipeItem.recipe}
+                </p>
+            </ScrollArea>
+            <DialogClose asChild className="mt-4">
+              <Button type="button" variant="outline">Close</Button>
+            </DialogClose>
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   )

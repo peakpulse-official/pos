@@ -31,7 +31,8 @@ const menuItemSchema = z.object({
   category: z.string().min(1, { message: "Please select a category." }),
   description: z.string().optional(),
   imageUrl: z.string().url({ message: "Please enter a valid URL." }).optional().or(z.literal('')),
-  dataAiHint: z.string().optional(),
+  dataAiHint: z.string().max(30, "Hint too long (max 30 chars).").optional(), // Max 2 words usually short
+  recipe: z.string().optional(),
 })
 
 type MenuItemFormValues = z.infer<typeof menuItemSchema>
@@ -53,6 +54,7 @@ export function MenuItemForm({ initialData, onSubmit, onCancel, isEditing }: Men
       description: initialData?.description || "",
       imageUrl: initialData?.imageUrl || "",
       dataAiHint: initialData?.dataAiHint || "",
+      recipe: initialData?.recipe || "",
     },
   })
 
@@ -144,9 +146,22 @@ export function MenuItemForm({ initialData, onSubmit, onCancel, isEditing }: Men
           name="dataAiHint"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Image Placeholder Hint (Optional, max 2 words)</FormLabel>
+              <FormLabel>Image Placeholder Hint (Optional)</FormLabel>
               <FormControl>
                 <Input placeholder="e.g. momo dumplings" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="recipe"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Recipe (Optional)</FormLabel>
+              <FormControl>
+                <Textarea rows={4} placeholder="Enter recipe steps here..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
