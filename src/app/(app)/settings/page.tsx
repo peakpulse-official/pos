@@ -330,7 +330,7 @@ export default function SettingsPage() {
               <TableBody>
                 {settings.printers.map((printer) => (
                   <TableRow key={printer.id}>
-                    <TableCell>{printer.name}</TableCell> <TableCell>{printer.type}</TableCell>
+                    <TableCell>{printer.name}</TableCell><TableCell>{printer.type}</TableCell>
                     <TableCell className="text-center"> {settings.defaultPrinterId === printer.id ? ( <CheckCircle className="h-5 w-5 text-green-500 mx-auto" /> ) : ( <Button variant="ghost" size="sm" onClick={() => handleSetDefaultPrinter(printer.id)}>Set Default</Button> )} </TableCell>
                     <TableCell className="text-right"> <AlertDialog> <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger> <AlertDialogContent> <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove the printer "{printer.name}"?</AlertDialogDescription></AlertDialogHeader> <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRemovePrinter(printer.id)}>Delete</AlertDialogAction></AlertDialogFooter> </AlertDialogContent> </AlertDialog> </TableCell>
                   </TableRow>
@@ -372,7 +372,7 @@ export default function SettingsPage() {
               <TableBody>
                 {settings.users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>{user.username}</TableCell> <TableCell>{user.role}</TableCell>
+                    <TableCell>{user.username}</TableCell><TableCell>{user.role}</TableCell>
                     <TableCell className="text-right space-x-1">
                       <Button variant="ghost" size="icon" onClick={() => handleOpenEditUserDialog(user)}><Edit className="h-4 w-4" /></Button>
                       <AlertDialog> <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive" disabled={user.username === 'admin@example.com'}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger> <AlertDialogContent> <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove the user "{user.username}"?</AlertDialogDescription></AlertDialogHeader> <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRemoveUser(user.id)}>Delete</AlertDialogAction></AlertDialogFooter> </AlertDialogContent> </AlertDialog>
