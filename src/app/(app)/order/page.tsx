@@ -13,6 +13,7 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Search } from "lucide-react"
 import { useSettings } from "@/contexts/SettingsContext" // Import useSettings
 import { Skeleton } from "@/components/ui/skeleton"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
