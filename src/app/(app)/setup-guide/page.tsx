@@ -4,7 +4,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { Rocket, AlertTriangle, Database, Users, Printer, Wifi, Cloud, ShieldCheck, HardDrive, Cpu, ShoppingCart, KeyRound } from "lucide-react"
+import { Rocket, AlertTriangle, Database, Users, Printer, Wifi, Cloud, ShieldCheck, HardDrive, Cpu, ShoppingCart, KeyRound, Terminal } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
@@ -27,7 +27,73 @@ export default function SetupGuidePage() {
         </AlertDescription>
       </Alert>
 
-      <Accordion type="single" collapsible className="w-full space-y-4">
+      <Accordion type="single" collapsible className="w-full space-y-4" defaultValue="item-local-dev">
+
+        <Card className="shadow-lg">
+          <AccordionItem value="item-local-dev" className="border-b-0">
+            <AccordionTrigger className="p-6 hover:no-underline">
+              <div className="flex items-start text-left space-x-3">
+                <Terminal className="h-7 w-7 text-primary mt-1" />
+                <div>
+                  <CardTitle className="font-headline text-xl">0. Local Development Setup</CardTitle>
+                  <CardDescription className="mt-1">Running the Annapurna POS app on your own computer for development and testing.</CardDescription>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              <div className="space-y-3 text-sm">
+                <p>You can run this Next.js application on your local system for development or to explore its features. Here’s how:</p>
+                <ol className="list-decimal list-inside space-y-2 pl-4">
+                  <li>
+                    <strong>Prerequisites:</strong>
+                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
+                      <li>Ensure you have <strong>Node.js</strong> installed. You can download it from <Link href="https://nodejs.org" target="_blank" className="text-primary hover:underline">nodejs.org</Link>. npm (Node Package Manager) is included with Node.js.</li>
+                      <li>A code editor (like VS Code) and a terminal or command prompt are also recommended.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Get the Code:</strong>
+                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
+                      <li>If you're working in Firebase Studio, you already have access to the project files.</li>
+                      <li>If you need to get the code onto your local machine, you would typically download it from Firebase Studio or clone it using Git if it's hosted in a repository.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Install Dependencies:</strong>
+                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
+                      <li>Open your terminal or command prompt.</li>
+                      <li>Navigate to the root directory of the project (the folder containing the <code className="bg-muted px-1.5 py-0.5 rounded-sm">package.json</code> file).</li>
+                      <li>Run the command: <code className="bg-muted px-1.5 py-0.5 rounded-sm block my-1">npm install</code></li>
+                      <li>This command reads <code className="bg-muted px-1.5 py-0.5 rounded-sm">package.json</code> and installs all necessary project dependencies into a <code className="bg-muted px-1.5 py-0.5 rounded-sm">node_modules</code> folder.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Run the Development Server:</strong>
+                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
+                      <li>Once dependencies are installed, start the Next.js development server using the command defined in your <code className="bg-muted px-1.5 py-0.5 rounded-sm">package.json</code>:
+                        <code className="bg-muted px-1.5 py-0.5 rounded-sm block my-1">npm run dev</code>
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>View Your App:</strong>
+                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
+                      <li>After running the <code className="bg-muted px-1.5 py-0.5 rounded-sm">dev</code> command, your terminal will indicate where the app is running. Based on this project's configuration (port 9002), it should be:
+                        <br />
+                        <Link href="http://localhost:9002" target="_blank" className="text-primary hover:underline font-semibold">http://localhost:9002</Link>
+                      </li>
+                      <li>Open this address in your web browser.</li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Development Mode:</strong> Any changes you save to the source code will typically cause the app to automatically reload in your browser.
+                  </li>
+                </ol>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Card>
+
 
         <Card className="shadow-lg">
           <AccordionItem value="item-1" className="border-b-0">
