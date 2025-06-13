@@ -5,7 +5,7 @@ import type { TableDefinition, Waiter, TableStatus } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Users, User, Clock, CheckCircle, Utensils, Edit3, Trash2, Ban } from "lucide-react";
+import { Users, User, Clock, CheckCircle, Utensils, Edit3, MessageSquare, Ban } from "lucide-react";
 import type { LucideIcon } from "lucide-react"; 
 import {
   DropdownMenu,
@@ -25,14 +25,14 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 
-const statusConfig: Record<TableStatus, { icon: LucideIcon, label: string, colorClass: string, badgeVariant: "default" | "secondary" | "destructive" | "outline" }> = {
-  vacant: { icon: CheckCircle, label: "Vacant", colorClass: "text-green-600 dark:text-green-500", badgeVariant: "secondary" },
-  occupied: { icon: Users, label: "Occupied", colorClass: "text-blue-600 dark:text-blue-500", badgeVariant: "default" },
-  needs_bill: { icon: Clock, label: "Needs Bill", colorClass: "text-orange-600 dark:text-orange-500", badgeVariant: "destructive" },
-  needs_cleaning: { icon: Utensils, label: "Needs Cleaning", colorClass: "text-purple-600 dark:text-purple-500", badgeVariant: "outline" },
+export const statusConfig: Record<TableStatus, { icon: LucideIcon, label: string, colorClass: string, badgeVariant: "default" | "secondary" | "destructive" | "outline", borderClass: string }> = {
+  vacant: { icon: CheckCircle, label: "Vacant", colorClass: "text-green-600 dark:text-green-500", badgeVariant: "secondary", borderClass: "border-green-500" },
+  occupied: { icon: Users, label: "Occupied", colorClass: "text-blue-600 dark:text-blue-500", badgeVariant: "default", borderClass: "border-blue-500" },
+  needs_bill: { icon: Clock, label: "Needs Bill", colorClass: "text-orange-600 dark:text-orange-500", badgeVariant: "destructive", borderClass: "border-orange-500" },
+  needs_cleaning: { icon: Utensils, label: "Needs Cleaning", colorClass: "text-purple-600 dark:text-purple-500", badgeVariant: "outline", borderClass: "border-purple-500" },
 };
 
 interface TableCardProps {
@@ -47,7 +47,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
   const [currentNotes, setCurrentNotes] = useState(table.notes || "");
 
   const assignedWaiter = waiters.find(w => w.id === table.waiterId);
-  const currentStatusConfig = statusConfig[table.status];
+  const currentStatusDetails = statusConfig[table.status];
 
   const handleStatusChange = (newStatus: TableStatus) => {
     updateTable(table.id, { status: newStatus });
@@ -66,15 +66,17 @@ export function TableCard({ table, waiters }: TableCardProps) {
     setIsEditingNotes(false);
   };
 
-
   return (
-    <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-primary"> {/* Simplified className for testing */}
+    <Card className={cn(
+        "shadow-md hover:shadow-lg transition-shadow border-l-4",
+        currentStatusDetails.borderClass
+      )}>
       <CardHeader className="pb-2 pt-3 px-3">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-headline">{table.name}</CardTitle>
-          <Badge variant={currentStatusConfig.badgeVariant} className="text-xs">
-            <currentStatusConfig.icon className={`mr-1 h-3 w-3 ${currentStatusConfig.colorClass}`} />
-            {currentStatusConfig.label}
+          <Badge variant={currentStatusDetails.badgeVariant} className="text-xs">
+            <currentStatusDetails.icon className={cn("mr-1 h-3 w-3", currentStatusDetails.colorClass)} />
+            {currentStatusDetails.label}
           </Badge>
         </div>
         <CardDescription className="text-xs">Capacity: {table.capacity}</CardDescription>
@@ -100,14 +102,15 @@ export function TableCard({ table, waiters }: TableCardProps) {
           </div>
         ) : (
           <div 
-            className="text-xs text-muted-foreground min-h-[2.5rem] p-1.5 rounded-sm hover:bg-muted/50 cursor-pointer"
+            className="text-xs text-muted-foreground min-h-[2.5rem] p-1.5 rounded-sm hover:bg-muted/50 cursor-pointer flex items-start space-x-1.5"
             onClick={() => setIsEditingNotes(true)}
             title="Click to edit notes"
           >
+            <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
             {table.notes ? (
-                <p className="whitespace-pre-wrap line-clamp-2">{table.notes}</p>
+                <p className="whitespace-pre-wrap line-clamp-2 flex-grow">{table.notes}</p>
             ) : (
-                <p className="italic">No notes. Click to add.</p>
+                <p className="italic flex-grow">No notes. Click to add.</p>
             )}
           </div>
         )}
@@ -117,7 +120,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="text-xs px-2 h-8">
-              <Edit3 className="mr-1 h-3 w-3" /> Change
+              <Edit3 className="mr-1 h-3 w-3" /> Actions
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
@@ -125,7 +128,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
             <DropdownMenuSeparator />
             <DropdownMenuSub>
                 <DropdownMenuSubTrigger>
-                    <currentStatusConfig.icon className="mr-2 h-4 w-4" />
+                    <currentStatusDetails.icon className="mr-2 h-4 w-4" />
                     <span>Change Status</span>
                 </DropdownMenuSubTrigger>
                 <DropdownMenuPortal>
@@ -133,7 +136,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
                         <DropdownMenuRadioGroup value={table.status} onValueChange={(value) => handleStatusChange(value as TableStatus)}>
                             {Object.entries(statusConfig).map(([statusKey, config]) => (
                                 <DropdownMenuRadioItem key={statusKey} value={statusKey}>
-                                    <config.icon className={`mr-2 h-4 w-4 ${config.colorClass}`} /> {config.label}
+                                    <config.icon className={cn("mr-2 h-4 w-4", config.colorClass)} /> {config.label}
                                 </DropdownMenuRadioItem>
                             ))}
                         </DropdownMenuRadioGroup>
@@ -161,6 +164,10 @@ export function TableCard({ table, waiters }: TableCardProps) {
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>
+             <DropdownMenuItem onClick={() => setIsEditingNotes(true)}>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                <span>{table.notes ? "Edit Note" : "Add Note"}</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </CardFooter>

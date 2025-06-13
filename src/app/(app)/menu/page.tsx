@@ -3,7 +3,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
-import { menuItems as defaultMenuItems, categories } from "@/lib/data"
+import { menuItems as defaultMenuItems, categories as defaultCategories } from "@/lib/data"
 import type { MenuItem as MenuItemType, MenuCategory } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,11 +36,15 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
+  const [categories, setCategories] = useState<MenuCategory[]>(defaultCategories); // Assuming categories are relatively static
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -114,12 +118,26 @@ export default function MenuPage() {
     setItemToDelete(null); 
   }
 
-  const filteredMenuItems = useMemo(() => {
-    return menuItems.filter(item =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      getCategoryName(item.category).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-  }, [menuItems, searchTerm])
+  const itemsByCategory = useMemo(() => {
+    const grouped: { [key: string]: MenuItemType[] } = {};
+    menuItems
+      .filter(item =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        getCategoryName(item.category).toLowerCase().includes(searchTerm.toLowerCase())
+      )
+      .forEach(item => {
+        if (!grouped[item.category]) {
+          grouped[item.category] = [];
+        }
+        grouped[item.category].push(item);
+      });
+    return grouped;
+  }, [menuItems, searchTerm, categories]);
+
+  const activeCategories = useMemo(() => {
+    return categories.filter(cat => itemsByCategory[cat.id] && itemsByCategory[cat.id].length > 0);
+  }, [itemsByCategory, categories]);
+
 
   if (isLoading) {
     return (
@@ -129,7 +147,12 @@ export default function MenuPage() {
           <Skeleton className="h-10 w-36" />
         </div>
         <Skeleton className="h-10 w-1/2" />
-        <Skeleton className="h-64 w-full" />
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="space-y-3">
+            <Skeleton className="h-12 w-1/3" />
+            <Skeleton className="h-48 w-full" />
+          </div>
+        ))}
       </div>
     );
   }
@@ -167,65 +190,83 @@ export default function MenuPage() {
         />
       </div>
 
-      {filteredMenuItems.length > 0 ? (
-        <div className="rounded-lg border overflow-hidden shadow-md bg-card">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[80px] hidden sm:table-cell">Image</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Category</TableHead>
-                <TableHead className="text-right">Price (NPR)</TableHead>
-                <TableHead className="text-center w-[120px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredMenuItems.map((item) => (
-                <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
-                  <TableCell className="hidden sm:table-cell">
-                    {item.imageUrl ? (
-                      <Image
-                        src={item.imageUrl}
-                        alt={item.name}
-                        width={50}
-                        height={50}
-                        className="rounded-md object-cover"
-                        data-ai-hint={item.dataAiHint}
-                      />
-                    ) : (
-                      <div className="w-[50px] h-[50px] bg-muted rounded-md flex items-center justify-center">
-                        <PackageOpen className="h-6 w-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </TableCell>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{getCategoryName(item.category)}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">{item.price.toFixed(2)}</TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex justify-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="text-blue-600 hover:text-blue-700">
-                        <Edit className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button variant="ghost" size="icon" onClick={() => openDeleteItemDialog(item)} className="text-destructive hover:text-red-700">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+      {activeCategories.length > 0 ? (
+        <Accordion type="multiple" defaultValue={activeCategories.map(c => c.id)} className="w-full space-y-3">
+          {activeCategories.map((category) => (
+            <AccordionItem value={category.id} key={category.id} className="border bg-card shadow-md rounded-lg">
+              <AccordionTrigger className="px-6 py-4 text-lg font-headline hover:no-underline">
+                <div className="flex items-center">
+                  {category.icon && <category.icon className="mr-3 h-6 w-6 text-primary" />}
+                  {category.name} ({itemsByCategory[category.id]?.length || 0})
+                </div>
+              </AccordionTrigger>
+              <AccordionContent className="px-2 sm:px-4 pb-4">
+                {itemsByCategory[category.id] && itemsByCategory[category.id].length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="w-[80px] hidden sm:table-cell">Image</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead className="text-right">Price (NPR)</TableHead>
+                          <TableHead className="text-center w-[120px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {itemsByCategory[category.id].map((item) => (
+                          <TableRow key={item.id} className="hover:bg-muted/50 transition-colors">
+                            <TableCell className="hidden sm:table-cell">
+                              {item.imageUrl ? (
+                                <Image
+                                  src={item.imageUrl}
+                                  alt={item.name}
+                                  width={50}
+                                  height={50}
+                                  className="rounded-md object-cover"
+                                  data-ai-hint={item.dataAiHint}
+                                />
+                              ) : (
+                                <div className="w-[50px] h-[50px] bg-muted rounded-md flex items-center justify-center">
+                                  <PackageOpen className="h-6 w-6 text-muted-foreground" />
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell className="font-medium">{item.name}</TableCell>
+                            <TableCell className="text-right">{item.price.toFixed(2)}</TableCell>
+                            <TableCell className="text-center">
+                              <div className="flex justify-center gap-2">
+                                <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="text-blue-600 hover:text-blue-700">
+                                  <Edit className="h-4 w-4" />
+                                  <span className="sr-only">Edit</span>
+                                </Button>
+                                <Button variant="ghost" size="icon" onClick={() => openDeleteItemDialog(item)} className="text-destructive hover:text-red-700">
+                                  <Trash2 className="h-4 w-4" />
+                                  <span className="sr-only">Delete</span>
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground text-center py-4">No items in this category match your search.</p>
+                )}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       ) : (
-        <div className="text-center py-10 text-muted-foreground bg-card rounded-lg shadow-md">
-          <Search className="mx-auto h-12 w-12 mb-4" />
-          <p className="text-xl font-semibold">No menu items found.</p>
-          <p>Try a different search or add new items to the menu.</p>
-        </div>
+        <Card className="text-center py-10 text-muted-foreground bg-card rounded-lg shadow-md">
+           <CardHeader>
+                <Search className="mx-auto h-12 w-12 mb-4 text-primary" />
+                <CardTitle className="text-xl font-semibold">No menu items found.</CardTitle>
+           </CardHeader>
+           <CardDescription>
+            Try a different search term or add new items to the menu.
+           </CardDescription>
+        </Card>
       )}
 
       {itemToDelete && (

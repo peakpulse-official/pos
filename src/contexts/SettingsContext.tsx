@@ -1,8 +1,9 @@
 // src/contexts/SettingsContext.tsx
 "use client"
 
-import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, TableStatus } from '@/lib/types';
+import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, TableStatus, OrderItem } from '@/lib/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { MOCK_WAITER_ORDER_ITEMS } from '@/lib/types'; // Import mock items
 
 const LOCAL_STORAGE_KEY = 'annapurnaAppSettings';
 
@@ -31,9 +32,11 @@ interface SettingsContextType {
   updateUserRole: (userId: string, newRole: UserAccount['role']) => void;
   removeUser: (userId: string) => void;
   // Tables
-  addTable: (tableData: Omit<TableDefinition, 'id' | 'status'>) => void;
+  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems'>) => void;
   updateTable: (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => void;
   removeTable: (tableId: string) => void;
+  assignMockOrderToTable: (tableId: string) => void; // For waiter prototype
+  clearMockOrderFromTable: (tableId: string) => void; // For waiter prototype
   // Waiters
   addWaiter: (waiterData: Omit<Waiter, 'id'>) => void;
   updateWaiter: (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => void;
@@ -52,7 +55,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedSettings) {
         const parsedSettings = JSON.parse(storedSettings);
-        setSettings({ ...defaultSettings, ...parsedSettings });
+        // Ensure tables have currentOrderItems, even if loading from older storage
+        const validatedTables = (parsedSettings.tables || []).map((table: TableDefinition) => ({
+          ...table,
+          currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined)
+        }));
+        setSettings({ ...defaultSettings, ...parsedSettings, tables: validatedTables });
       } else {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultSettings));
          setSettings(defaultSettings);
@@ -140,12 +148,13 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Table Management
-  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status'>) => {
+  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems'>) => {
     setSettings(prevSettings => {
       const newTable: TableDefinition = { 
         ...tableData, 
         id: `table-${Date.now()}`, 
-        status: 'vacant' 
+        status: 'vacant',
+        currentOrderItems: undefined, // Initially no items
       };
       const updatedTables = [...prevSettings.tables, newTable];
       const updated = { ...prevSettings, tables: updatedTables };
@@ -168,6 +177,28 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const removeTable = (tableId: string) => {
     setSettings(prevSettings => {
       const updatedTables = prevSettings.tables.filter(t => t.id !== tableId);
+      const updated = { ...prevSettings, tables: updatedTables };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+
+  const assignMockOrderToTable = (tableId: string) => {
+    setSettings(prevSettings => {
+      const updatedTables = prevSettings.tables.map(t => 
+        t.id === tableId ? { ...t, currentOrderItems: MOCK_WAITER_ORDER_ITEMS } : t
+      );
+      const updated = { ...prevSettings, tables: updatedTables };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+
+  const clearMockOrderFromTable = (tableId: string) => {
+     setSettings(prevSettings => {
+      const updatedTables = prevSettings.tables.map(t => 
+        t.id === tableId ? { ...t, currentOrderItems: undefined } : t
+      );
       const updated = { ...prevSettings, tables: updatedTables };
       persistSettings(updated);
       return updated;
@@ -222,6 +253,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         addTable,
         updateTable,
         removeTable,
+        assignMockOrderToTable,
+        clearMockOrderFromTable,
         addWaiter,
         updateWaiter,
         removeWaiter,

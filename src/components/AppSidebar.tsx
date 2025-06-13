@@ -1,4 +1,3 @@
-
 // src/components/AppSidebar.tsx
 "use client"
 
@@ -13,7 +12,8 @@ import {
   ChefHat,
   Settings,
   Rocket,
-  LayoutGrid, // Added for Floor Plan
+  LayoutGrid, 
+  ClipboardUser, // Icon for Waiter View
 } from "lucide-react"
 import {
   Sidebar,
@@ -31,7 +31,8 @@ const navItems = [
   { href: "/order", label: "Order", icon: ShoppingCart },
   { href: "/menu", label: "Menu", icon: BookOpenText },
   { href: "/billing", label: "Billing", icon: Printer },
-  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid }, // Added Floor Plan
+  { href: "/floor-plan", label: "Floor Plan (Admin)", icon: LayoutGrid },
+  { href: "/waiter-view", label: "Waiter View", icon: ClipboardUser }, // New Waiter View link
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/recommendations", label: "AI Recommends", icon: Sparkles },
   { href: "/setup-guide", label: "Setup Guide", icon: Rocket },

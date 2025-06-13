@@ -60,6 +60,7 @@ export interface UserAccount {
   id: string;
   username: string;
   role: UserRole;
+  // passwordHash?: string; // For backend reference, not stored in frontend settings
 }
 
 export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
@@ -71,7 +72,8 @@ export interface TableDefinition {
   status: TableStatus;
   waiterId?: string | null; // ID of the assigned waiter
   notes?: string;
-  // position?: { x: number, y: number }; // For future floor plan drawing
+  // For prototype waiter actions, to simulate an order associated with the table
+  currentOrderItems?: OrderItem[]; 
 }
 
 export interface Waiter {
@@ -91,3 +93,10 @@ export interface AppSettings {
   tables: TableDefinition[];
   waiters: Waiter[];
 }
+
+// Mock order items for waiter view demonstration
+export const MOCK_WAITER_ORDER_ITEMS: OrderItem[] = [
+  { id: 'item1', name: 'Espresso', price: 150, category: 'cat1', quantity: 1, description: 'Strong black coffee.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'coffee cup' },
+  { id: 'item5', name: 'Chicken Mo:Mo (Steamed)', price: 250, category: 'cat2', quantity: 2, description: 'Nepali steamed chicken dumplings.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'momo dumplings' },
+  { id: 'item3', name: 'Nepali Tea (Chiya)', price: 80, category: 'cat1', quantity: 1, description: 'Traditional Nepali milk tea.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'tea cup' },
+];
