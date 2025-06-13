@@ -62,6 +62,23 @@ export interface UserAccount {
   role: UserRole;
 }
 
+export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
+
+export interface TableDefinition {
+  id: string;
+  name: string; // e.g., "T1", "Window Table 5"
+  capacity: number;
+  status: TableStatus;
+  waiterId?: string | null; // ID of the assigned waiter
+  notes?: string;
+  // position?: { x: number, y: number }; // For future floor plan drawing
+}
+
+export interface Waiter {
+  id: string;
+  name: string;
+}
+
 export interface AppSettings {
   restaurantName: string;
   restaurantAddress: string;
@@ -71,4 +88,6 @@ export interface AppSettings {
   printers: PrinterDevice[];
   defaultPrinterId: string | null;
   users: UserAccount[];
+  tables: TableDefinition[];
+  waiters: Waiter[];
 }

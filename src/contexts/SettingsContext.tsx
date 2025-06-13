@@ -1,7 +1,7 @@
 // src/contexts/SettingsContext.tsx
 "use client"
 
-import type { AppSettings, PrinterDevice, UserAccount } from '@/lib/types';
+import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, TableStatus } from '@/lib/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 const LOCAL_STORAGE_KEY = 'annapurnaAppSettings';
@@ -15,17 +15,29 @@ const defaultSettings: AppSettings = {
   printers: [],
   defaultPrinterId: null,
   users: [],
+  tables: [],
+  waiters: [],
 };
 
 interface SettingsContextType {
   settings: AppSettings;
   updateSettings: (newSettings: Partial<AppSettings>) => void;
+  // Printers
   addPrinter: (printer: Omit<PrinterDevice, 'id'>) => void;
   removePrinter: (printerId: string) => void;
   setDefaultPrinter: (printerId: string | null) => void;
+  // Users
   addUser: (user: Omit<UserAccount, 'id'>) => void;
   updateUserRole: (userId: string, newRole: UserAccount['role']) => void;
   removeUser: (userId: string) => void;
+  // Tables
+  addTable: (tableData: Omit<TableDefinition, 'id' | 'status'>) => void;
+  updateTable: (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => void;
+  removeTable: (tableId: string) => void;
+  // Waiters
+  addWaiter: (waiterData: Omit<Waiter, 'id'>) => void;
+  updateWaiter: (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => void;
+  removeWaiter: (waiterId: string) => void;
   isLoading: boolean;
 }
 
@@ -39,7 +51,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     try {
       const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedSettings) {
-        // Merge stored settings with defaults to ensure all keys are present
         const parsedSettings = JSON.parse(storedSettings);
         setSettings({ ...defaultSettings, ...parsedSettings });
       } else {
@@ -70,6 +81,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Printer Management
   const addPrinter = (printerData: Omit<PrinterDevice, 'id'>) => {
     setSettings(prevSettings => {
       const newPrinter: PrinterDevice = { ...printerData, id: `printer-${Date.now()}` };
@@ -98,6 +110,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // User Management
   const addUser = (userData: Omit<UserAccount, 'id'>) => {
     setSettings(prevSettings => {
       const newUser: UserAccount = { ...userData, id: `user-${Date.now()}` };
@@ -126,6 +139,75 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  // Table Management
+  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status'>) => {
+    setSettings(prevSettings => {
+      const newTable: TableDefinition = { 
+        ...tableData, 
+        id: `table-${Date.now()}`, 
+        status: 'vacant' 
+      };
+      const updatedTables = [...prevSettings.tables, newTable];
+      const updated = { ...prevSettings, tables: updatedTables };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+
+  const updateTable = (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => {
+    setSettings(prevSettings => {
+      const updatedTables = prevSettings.tables.map(t => 
+        t.id === tableId ? { ...t, ...updates } : t
+      );
+      const updated = { ...prevSettings, tables: updatedTables };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+
+  const removeTable = (tableId: string) => {
+    setSettings(prevSettings => {
+      const updatedTables = prevSettings.tables.filter(t => t.id !== tableId);
+      const updated = { ...prevSettings, tables: updatedTables };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+
+  // Waiter Management
+  const addWaiter = (waiterData: Omit<Waiter, 'id'>) => {
+    setSettings(prevSettings => {
+      const newWaiter: Waiter = { ...waiterData, id: `waiter-${Date.now()}` };
+      const updatedWaiters = [...prevSettings.waiters, newWaiter];
+      const updated = { ...prevSettings, waiters: updatedWaiters };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+
+  const updateWaiter = (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => {
+    setSettings(prevSettings => {
+      const updatedWaiters = prevSettings.waiters.map(w =>
+        w.id === waiterId ? { ...w, ...updates } : w
+      );
+      const updated = { ...prevSettings, waiters: updatedWaiters };
+      persistSettings(updated);
+      return updated;
+    });
+  };
+  
+  const removeWaiter = (waiterId: string) => {
+    setSettings(prevSettings => {
+      // Also unassign this waiter from any tables
+      const unassignedTables = prevSettings.tables.map(t => 
+        t.waiterId === waiterId ? { ...t, waiterId: null } : t
+      );
+      const updatedWaiters = prevSettings.waiters.filter(w => w.id !== waiterId);
+      const updated = { ...prevSettings, waiters: updatedWaiters, tables: unassignedTables };
+      persistSettings(updated);
+      return updated;
+    });
+  };
 
   return (
     <SettingsContext.Provider value={{ 
@@ -137,6 +219,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         addUser,
         updateUserRole,
         removeUser,
+        addTable,
+        updateTable,
+        removeTable,
+        addWaiter,
+        updateWaiter,
+        removeWaiter,
         isLoading 
       }}>
       {children}

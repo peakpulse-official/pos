@@ -12,7 +12,8 @@ import {
   Sparkles,
   ChefHat,
   Settings,
-  Rocket, // Added Rocket icon
+  Rocket,
+  LayoutGrid, // Added for Floor Plan
 } from "lucide-react"
 import {
   Sidebar,
@@ -30,9 +31,10 @@ const navItems = [
   { href: "/order", label: "Order", icon: ShoppingCart },
   { href: "/menu", label: "Menu", icon: BookOpenText },
   { href: "/billing", label: "Billing", icon: Printer },
+  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid }, // Added Floor Plan
   { href: "/reports", label: "Reports", icon: BarChart3 },
   { href: "/recommendations", label: "AI Recommends", icon: Sparkles },
-  { href: "/setup-guide", label: "Setup Guide", icon: Rocket }, // Added Setup Guide link
+  { href: "/setup-guide", label: "Setup Guide", icon: Rocket },
 ]
 
 export function AppSidebar() {
@@ -85,5 +87,3 @@ export function AppSidebar() {
     </Sidebar>
   )
 }
-
-    
