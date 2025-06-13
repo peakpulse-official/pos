@@ -6,22 +6,22 @@ import { useRouter, usePathname } from 'next/navigation';
 import { AppSidebar } from "@/components/AppSidebar";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SettingsProvider, useSettings } from "@/contexts/SettingsContext"; // Import useSettings
+// SettingsProvider import is removed as it's now in the root layout
+import { useSettings } from "@/contexts/SettingsContext"; 
 import { Skeleton } from '@/components/ui/skeleton';
 
 function ProtectedAppLayout({ children }: { children: React.ReactNode }) {
-  const { currentUser, isLoading } = useSettings();
+  const { currentUser, isLoading, settings } = useSettings(); // Ensure settings is destructured if used
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    if (!isLoading && !currentUser && pathname !== '/login') { // Avoid redirect loop if already on login
+    if (!isLoading && !currentUser && pathname !== '/login') { 
       router.replace('/login');
     }
   }, [currentUser, isLoading, router, pathname]);
 
   if (isLoading || (!currentUser && pathname !== '/login')) {
-    // Show a loading state or a minimal layout while checking auth or redirecting
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Skeleton className="h-12 w-1/2 mb-4" />
@@ -29,7 +29,6 @@ function ProtectedAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
   
-  // If user is authenticated, render the main app layout
   if (currentUser) {
     return (
       <SidebarProvider defaultOpen={true}>
@@ -37,7 +36,8 @@ function ProtectedAppLayout({ children }: { children: React.ReactNode }) {
         <SidebarInset>
           <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background/80 backdrop-blur-sm px-4 md:px-6 md:hidden">
             <SidebarTrigger />
-            <h1 className="font-headline text-lg font-semibold text-primary">{settings.restaurantName || "Annapurna POS"}</h1>
+            {/* Ensure settings is available and restaurantName is accessed correctly */}
+            <h1 className="font-headline text-lg font-semibold text-primary">{settings?.restaurantName || "Annapurna POS"}</h1>
           </header>
           <ScrollArea className="h-[calc(100vh-theme(spacing.14))] md:h-screen">
             <main className="flex-1 p-4 md:p-6 lg:p-8">
@@ -49,15 +49,10 @@ function ProtectedAppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  // Fallback, should ideally be handled by redirect logic
   return null; 
 }
 
-
+// AppLayoutWrapper no longer wraps with SettingsProvider
 export default function AppLayoutWrapper({ children }: { children: React.ReactNode }) {
-  return (
-    <SettingsProvider>
-      <ProtectedAppLayout>{children}</ProtectedAppLayout>
-    </SettingsProvider>
-  )
+  return <ProtectedAppLayout>{children}</ProtectedAppLayout>;
 }
