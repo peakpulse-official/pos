@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TableCardsGrid } from "@/components/floor-plan/TableCardsGrid" // Admin one can be reused for display
 import { WaiterTableCard } from "@/components/waiter-view/WaiterTableCard" // Waiter specific card
-import { Clipboard, Info, UserCheck } from "lucide-react" // Corrected icon import
+import { Clipboard, Info, UserCheck } from "lucide-react" 
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function WaiterViewPage() {
@@ -44,7 +44,7 @@ export default function WaiterViewPage() {
                 <SelectValue placeholder="Select Waiter Profile" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="" disabled>Select your profile</SelectItem>
+                {/* <SelectItem value="" disabled>Select your profile</SelectItem>  <- Removed this problematic item */}
                 {settings.waiters.map((waiter) => (
                   <SelectItem key={waiter.id} value={waiter.id}>
                     {waiter.name}
@@ -64,7 +64,7 @@ export default function WaiterViewPage() {
             </CardHeader>
             <CardContent className="text-center">
                 <p className="text-muted-foreground">
-                Please ask an Administrator to add waiter profiles in the "Floor Plan &gt; Manage Waiters" section.
+                Please ask an Administrator to add waiter profiles in the "Floor Plan > Manage Waiters" section.
                 </p>
             </CardContent>
          </Card>
@@ -93,7 +93,7 @@ export default function WaiterViewPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                     <p className="text-muted-foreground">
-                    An Administrator needs to add tables in "Floor Plan &gt; Manage Tables".
+                    An Administrator needs to add tables in "Floor Plan > Manage Tables".
                     </p>
                 </CardContent>
             </Card>
