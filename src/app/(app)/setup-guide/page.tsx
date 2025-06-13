@@ -1,4 +1,3 @@
-
 // src/app/(app)/setup-guide/page.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
