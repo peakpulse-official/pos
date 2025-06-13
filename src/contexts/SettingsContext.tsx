@@ -11,6 +11,7 @@ const defaultSettings: AppSettings = {
   restaurantName: 'Annapurna POS',
   restaurantAddress: 'Kathmandu, Nepal',
   restaurantContact: '+977-1-4XXXXXX',
+  logoUrl: '', // Default to empty string for logo
   vatRate: 0.13, // 13%
   serviceChargeRate: 0.10, // 10%
   printers: [],
@@ -154,7 +155,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         ...tableData, 
         id: `table-${Date.now()}`, 
         status: 'vacant',
-        currentOrderItems: undefined, // Initially no items
+        currentOrderItems: undefined, 
       };
       const updatedTables = [...prevSettings.tables, newTable];
       const updated = { ...prevSettings, tables: updatedTables };

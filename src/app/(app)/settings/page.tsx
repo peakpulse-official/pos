@@ -18,14 +18,21 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Settings as SettingsIcon, Save, Store, Percent, Server, Users, PlusCircle, Trash2, Edit, CheckCircle, Star } from "lucide-react"
+import { Settings as SettingsIcon, Save, Store, Percent, Server, Users, PlusCircle, Trash2, Edit, CheckCircle, Star, Image as ImageIcon } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import Image from "next/image";
+
 
 const restaurantDetailsSchema = z.object({
   restaurantName: z.string().min(1, "Restaurant name is required"),
   restaurantAddress: z.string().min(1, "Restaurant address is required"),
   restaurantContact: z.string().optional(),
 })
+
+const brandingSchema = z.object({
+  logoUrl: z.string().url("Please enter a valid URL for the logo.").optional().or(z.literal('')),
+});
+
 
 const taxChargesSchema = z.object({
   vatRate: z.coerce.number().min(0, "VAT rate must be non-negative").max(1, "VAT rate must be <= 1 (e.g., 0.13 for 13%)"),
@@ -43,6 +50,7 @@ const userSchema = z.object({
 })
 
 type RestaurantDetailsFormValues = z.infer<typeof restaurantDetailsSchema>
+type BrandingFormValues = z.infer<typeof brandingSchema>;
 type TaxChargesFormValues = z.infer<typeof taxChargesSchema>
 type PrinterFormValues = z.infer<typeof printerSchema>
 type UserFormValues = z.infer<typeof userSchema>
@@ -73,6 +81,11 @@ export default function SettingsPage() {
     defaultValues: settings,
   })
 
+  const brandingForm = useForm<BrandingFormValues>({
+    resolver: zodResolver(brandingSchema),
+    defaultValues: { logoUrl: settings.logoUrl || "" },
+  });
+
   const taxForm = useForm<TaxChargesFormValues>({
     resolver: zodResolver(taxChargesSchema),
     defaultValues: settings,
@@ -96,9 +109,10 @@ export default function SettingsPage() {
   React.useEffect(() => {
     if (!isLoading) {
       restaurantForm.reset(settings)
+      brandingForm.reset({ logoUrl: settings.logoUrl || "" });
       taxForm.reset(settings)
     }
-  }, [settings, isLoading, restaurantForm, taxForm])
+  }, [settings, isLoading, restaurantForm, brandingForm, taxForm])
 
   React.useEffect(() => {
     if (editingUser) {
@@ -111,6 +125,11 @@ export default function SettingsPage() {
     updateSettings(data)
     toast({ title: "Restaurant Details Updated", description: "Your restaurant information has been saved." })
   }
+
+  const handleBrandingSubmit = (data: BrandingFormValues) => {
+    updateSettings({ logoUrl: data.logoUrl || "" }); // Ensure empty string if undefined
+    toast({ title: "Branding Updated", description: "Your logo URL has been saved." });
+  };
 
   const handleTaxChargesSubmit = (data: TaxChargesFormValues) => {
     updateSettings(data)
@@ -168,7 +187,7 @@ export default function SettingsPage() {
           <SettingsIcon className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-headline font-bold text-primary">Settings</h1>
         </div>
-        {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
       </div>
     )
   }
@@ -197,6 +216,43 @@ export default function SettingsPage() {
           </Card>
         </form>
       </Form>
+
+      {/* Branding Form */}
+      <Form {...brandingForm}>
+        <form onSubmit={brandingForm.handleSubmit(handleBrandingSubmit)} className="space-y-6">
+          <Card className="shadow-lg">
+            <CardHeader>
+              <CardTitle className="font-headline text-xl flex items-center"><ImageIcon className="mr-2 h-5 w-5" />Branding</CardTitle>
+              <CardDescription>Set your restaurant's logo. Provide a direct image URL.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={brandingForm.control}
+                name="logoUrl"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Logo URL</FormLabel>
+                    <FormControl><Input placeholder="https://example.com/logo.png or https://placehold.co/100x40.png" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {settings.logoUrl && (
+                <div className="mt-2">
+                  <Label>Current Logo Preview:</Label>
+                  <div className="mt-1 p-2 border rounded-md inline-block bg-muted">
+                    <Image src={settings.logoUrl} alt="Logo Preview" width={100} height={40} className="object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
+                  </div>
+                </div>
+              )}
+              <Button type="submit" disabled={brandingForm.formState.isSubmitting}>
+                <Save className="mr-2 h-4 w-4" /> Save Branding
+              </Button>
+            </CardContent>
+          </Card>
+        </form>
+      </Form>
+
 
       {/* Tax & Charges Form */}
       <Form {...taxForm}>

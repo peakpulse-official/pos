@@ -7,7 +7,7 @@ export interface MenuItem {
   category: string;
   imageUrl?: string;
   description?: string;
-  recipe?: string; // New field for recipe
+  recipe?: string; 
   dataAiHint?: string; 
 }
 
@@ -73,7 +73,6 @@ export interface TableDefinition {
   status: TableStatus;
   waiterId?: string | null; // ID of the assigned waiter
   notes?: string;
-  // For prototype waiter actions, to simulate an order associated with the table
   currentOrderItems?: OrderItem[]; 
 }
 
@@ -86,6 +85,7 @@ export interface AppSettings {
   restaurantName: string;
   restaurantAddress: string;
   restaurantContact: string;
+  logoUrl?: string; // New field for custom logo URL
   vatRate: number; // e.g., 0.13 for 13%
   serviceChargeRate: number; // e.g., 0.10 for 10%
   printers: PrinterDevice[];
