@@ -48,10 +48,27 @@ export interface DailySales {
   popularItems: { itemId: string, name: string, quantitySold: number }[];
 }
 
+export type PrinterType = "Receipt" | "Kitchen" | "Label";
+export interface PrinterDevice {
+  id: string;
+  name: string;
+  type: PrinterType;
+}
+
+export type UserRole = "Admin" | "Staff" | "Manager";
+export interface UserAccount {
+  id: string;
+  username: string;
+  role: UserRole;
+}
+
 export interface AppSettings {
   restaurantName: string;
   restaurantAddress: string;
   restaurantContact: string;
   vatRate: number; // e.g., 0.13 for 13%
   serviceChargeRate: number; // e.g., 0.10 for 10%
+  printers: PrinterDevice[];
+  defaultPrinterId: string | null;
+  users: UserAccount[];
 }
