@@ -1,3 +1,4 @@
+
 // src/app/(auth)/login/page.tsx
 "use client"
 
@@ -21,9 +22,8 @@ import { useToast } from "@/hooks/use-toast"
 import { LogIn, UserPlus } from "lucide-react"
 import { useSettings } from "@/contexts/SettingsContext"
 
-// Login form expects 'email' but UserAccount has 'username'. We'll treat email as username for login.
 const loginSchema = z.object({
-  email: z.string().min(1, { message: "Username (email) is required." }), // Changed from .email() to allow general usernames
+  email: z.string().min(1, { message: "Username (email) is required." }), 
   password: z.string().min(1, { message: "Password is required." }),
 })
 
@@ -52,20 +52,20 @@ export default function LoginPage() {
         variant: "default"
       })
       // Redirect based on role
-      if (authenticatedUser.role === "Admin" || authenticatedUser.role === "Manager") {
+      if (authenticatedUser.role === 'Admin') {
         router.push("/floor-plan")
-      } else if (authenticatedUser.role === "Staff") {
-        router.push("/waiter-view")
+      } else if (authenticatedUser.role === 'Manager' || authenticatedUser.role === 'Staff') {
+        router.push("/dashboard") // Redirect Manager and Staff to dashboard
       } else {
-        router.push("/order") // Default page
+        router.push("/order") // Default page if role is somehow different
       }
     } else {
       toast({
         title: "Login Failed",
-        description: "Invalid username or password. (Hint: For prototype, try 'admin@example.com' with 'password123' or any user from settings with 'password123')",
+        description: "Invalid username or password. (Hint: For prototype, try 'admin@example.com' with 'password123' or any user from settings with their set password or 'password123' if unset).",
         variant: "destructive"
       })
-      form.setError("email", { type: "manual", message: " " }) // Add error to trigger field re-render
+      form.setError("email", { type: "manual", message: " " }) 
       form.setError("password", { type: "manual", message: "Invalid username or password." })
     }
   }
@@ -123,7 +123,7 @@ export default function LoginPage() {
           </Link>
         </Button>
          <p className="text-xs text-muted-foreground mt-4 text-center">
-            Prototype Login: Use 'admin@example.com' with password 'password123', or any user added in Settings (default password 'password123').
+            Prototype Login: Use 'admin@example.com' with password 'password123', or any user added in Settings (default password 'password123' or as set by admin).
         </p>
       </CardFooter>
     </Card>

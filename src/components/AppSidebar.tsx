@@ -1,3 +1,4 @@
+
 // src/components/AppSidebar.tsx
 "use client"
 
@@ -16,10 +17,11 @@ import {
   LayoutGrid, 
   Clipboard, 
   LogOut,
-  LogIn as LogInIcon, // For Check-in
-  LogOut as LogOutIcon, // For Check-out
-  CalendarCheck, // For Attendance
+  LogIn as LogInIcon, 
+  LogOut as LogOutIcon, 
+  CalendarCheck, 
   UserCircle,
+  LayoutDashboard, // Added for Dashboard
 } from "lucide-react"
 import {
   Sidebar,
@@ -38,17 +40,18 @@ import { Button } from "./ui/button"
 import { useToast } from "@/hooks/use-toast"
 
 
-const navItems = [
-  { href: "/order", label: "Order", icon: ShoppingCart },
-  { href: "/menu", label: "Menu", icon: BookOpenText },
-  { href: "/billing", label: "Billing", icon: Printer },
-  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, adminOnly: true }, // Example admin only
-  { href: "/waiter-view", label: "Waiter View", icon: Clipboard, staffOnly: true }, 
-  { href: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
-  { href: "/recommendations", label: "AI Recommends", icon: Sparkles },
-  { href: "/attendance", label: "Attendance", icon: CalendarCheck, adminOnly: true }, // For viewing logs
-  { href: "/setup-guide", label: "Setup Guide", icon: Rocket },
-]
+const navItemsBase = [
+  { href: "/order", label: "Order", icon: ShoppingCart, roles: ['Admin', 'Manager', 'Staff'] },
+  { href: "/menu", label: "Menu", icon: BookOpenText, roles: ['Admin', 'Manager', 'Staff'] },
+  { href: "/billing", label: "Billing", icon: Printer, roles: ['Admin', 'Manager', 'Staff'] },
+  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager'] }, 
+  { href: "/waiter-view", label: "Waiter View", icon: Clipboard, roles: ['Staff'] }, 
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Manager', 'Staff'] }, // New Dashboard link
+  { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Admin', 'Manager'] },
+  { href: "/recommendations", label: "AI Recommends", icon: Sparkles, roles: ['Admin', 'Manager', 'Staff'] },
+  { href: "/attendance", label: "Attendance Logs", icon: CalendarCheck, roles: ['Admin', 'Manager'] }, 
+  { href: "/setup-guide", label: "Setup Guide", icon: Rocket, roles: ['Admin', 'Manager', 'Staff'] },
+];
 
 export function AppSidebar() {
   const pathname = usePathname()
@@ -79,11 +82,9 @@ export function AppSidebar() {
     }
   }
 
-  const filteredNavItems = navItems.filter(item => {
-    if (!currentUser) return !item.adminOnly && !item.staffOnly; // Show general items if not logged in (though layout should prevent this)
-    if (item.adminOnly && (currentUser.role !== 'Admin' && currentUser.role !== 'Manager')) return false;
-    if (item.staffOnly && currentUser.role !== 'Staff') return false; // Staff also includes waiters for this context
-    return true;
+  const filteredNavItems = navItemsBase.filter(item => {
+    if (!currentUser) return false; // Should not happen if layout protects routes
+    return item.roles.includes(currentUser.role);
   });
 
 

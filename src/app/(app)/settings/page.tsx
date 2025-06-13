@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useToast } from "@/hooks/use-toast"
-import { Settings as SettingsIcon, Save, Store, Percent, Server, Users, PlusCircle, Trash2, Edit, CheckCircle, Star, Image as ImageIcon } from "lucide-react"
+import { Settings as SettingsIcon, Save, Store, Percent, Server, Users, PlusCircle, Trash2, Edit, CheckCircle, Star, Image as ImageIcon, KeyRound } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import Image from "next/image";
 
@@ -44,16 +44,55 @@ const printerSchema = z.object({
   type: z.enum(["Receipt", "Kitchen", "Label"], { required_error: "Printer type is required" }),
 })
 
-const userSchema = z.object({
+const addUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
   role: z.enum(["Admin", "Staff", "Manager"], { required_error: "User role is required" }),
-})
+  password: z.string().optional(), // Password is optional on add, defaults in context
+  confirmPassword: z.string().optional(),
+}).refine(data => {
+    if (data.password && data.password.length > 0) return data.password === data.confirmPassword;
+    return true; // No password provided or only one field filled, validation passes for password itself
+}, {
+  message: "Passwords don't match",
+  path: ["confirmPassword"],
+}).refine(data => {
+    if (data.password && data.password.length > 0 && data.password.length < 6) return false;
+    return true;
+}, {
+    message: "Password must be at least 6 characters if provided",
+    path: ["password"],
+});
+
+
+const editUserSchema = z.object({
+  username: z.string().min(3, "Username must be at least 3 characters"),
+  role: z.enum(["Admin", "Staff", "Manager"], { required_error: "User role is required" }),
+  password: z.string().optional(), // New password, optional
+  confirmPassword: z.string().optional(), // Confirm new password
+}).refine(data => {
+    // If password is provided, it must be at least 6 chars and match confirmPassword
+    if (data.password && data.password.length > 0) {
+        if (data.password.length < 6) return false; // Path for this will be 'password'
+        return data.password === data.confirmPassword; // Path for this will be 'confirmPassword'
+    }
+    return true; // No new password provided, so validation passes for password fields
+}, data => {
+    if (data.password && data.password.length > 0 && data.password.length < 6) {
+        return { message: "New password must be at least 6 characters", path: ["password"] };
+    }
+    if (data.password && data.password.length > 0 && data.password !== data.confirmPassword) {
+        return { message: "New passwords don't match", path: ["confirmPassword"] };
+    }
+    return {}; // Should not happen if logic is correct
+});
+
 
 type RestaurantDetailsFormValues = z.infer<typeof restaurantDetailsSchema>
 type BrandingFormValues = z.infer<typeof brandingSchema>;
 type TaxChargesFormValues = z.infer<typeof taxChargesSchema>
 type PrinterFormValues = z.infer<typeof printerSchema>
-type UserFormValues = z.infer<typeof userSchema>
+type AddUserFormValues = z.infer<typeof addUserSchema>
+type EditUserFormValues = z.infer<typeof editUserSchema>
 
 
 export default function SettingsPage() {
@@ -64,16 +103,16 @@ export default function SettingsPage() {
     removePrinter,
     setDefaultPrinter,
     addUser,
-    updateUserRole,
+    updateUser, // Use the new updateUser
     removeUser,
     isLoading 
   } = useSettings()
   const { toast } = useToast()
 
   const [isPrinterDialogOpen, setIsPrinterDialogOpen] = React.useState(false);
-  const [isUserDialogOpen, setIsUserDialogOpen] = React.useState(false);
+  const [isAddUserDialogOpen, setIsAddUserDialogOpen] = React.useState(false); // For Add User Dialog
+  const [isEditUserDialogOpen, setIsEditUserDialogOpen] = React.useState(false); // For Edit User Dialog
   const [editingUser, setEditingUser] = React.useState<UserAccount | null>(null);
-  const [isEditUserRoleDialogOpen, setIsEditUserRoleDialogOpen] = React.useState(false);
 
 
   const restaurantForm = useForm<RestaurantDetailsFormValues>({
@@ -96,14 +135,15 @@ export default function SettingsPage() {
     defaultValues: { name: "", type: "Receipt" },
   })
 
-  const userForm = useForm<UserFormValues>({
-    resolver: zodResolver(userSchema),
-    defaultValues: { username: "", role: "Staff"},
+  const addUserForm = useForm<AddUserFormValues>({ // Form for Add User
+    resolver: zodResolver(addUserSchema),
+    defaultValues: { username: "", role: "Staff", password: "", confirmPassword: ""},
   })
-
-  const editUserRoleForm = useForm<{role: UserRole}>({
-    resolver: zodResolver(z.object({role: z.enum(["Admin", "Staff", "Manager"])})),
-  });
+  
+  const editUserForm = useForm<EditUserFormValues>({ // Form for Edit User
+    resolver: zodResolver(editUserSchema),
+    defaultValues: { username: "", role: "Staff", password: "", confirmPassword: ""},
+  })
 
 
   React.useEffect(() => {
@@ -115,10 +155,15 @@ export default function SettingsPage() {
   }, [settings, isLoading, restaurantForm, brandingForm, taxForm])
 
   React.useEffect(() => {
-    if (editingUser) {
-      editUserRoleForm.reset({ role: editingUser.role });
+    if (editingUser && isEditUserDialogOpen) { // Populate form when editingUser and dialog are set
+      editUserForm.reset({
+        username: editingUser.username,
+        role: editingUser.role,
+        password: "", // Always start with empty password fields for reset
+        confirmPassword: "",
+      });
     }
-  }, [editingUser, editUserRoleForm]);
+  }, [editingUser, isEditUserDialogOpen, editUserForm]);
 
 
   const handleRestaurantDetailsSubmit = (data: RestaurantDetailsFormValues) => {
@@ -127,7 +172,7 @@ export default function SettingsPage() {
   }
 
   const handleBrandingSubmit = (data: BrandingFormValues) => {
-    updateSettings({ logoUrl: data.logoUrl || "" }); // Ensure empty string if undefined
+    updateSettings({ logoUrl: data.logoUrl || "" }); 
     toast({ title: "Branding Updated", description: "Your logo URL has been saved." });
   };
 
@@ -153,24 +198,32 @@ export default function SettingsPage() {
     toast({ title: "Default Printer Set" });
   }
   
-  const handleAddUserSubmit = (data: UserFormValues) => {
-    addUser(data as Omit<UserAccount, 'id'>);
+  const handleAddUserFormSubmit = (data: AddUserFormValues) => {
+    addUser({ username: data.username, role: data.role, password: data.password }); // Pass password
     toast({ title: "User Added", description: `${data.username} has been added.` });
-    userForm.reset({ username: "", role: "Staff" });
-    setIsUserDialogOpen(false);
+    addUserForm.reset({ username: "", role: "Staff", password: "", confirmPassword: "" });
+    setIsAddUserDialogOpen(false);
   }
 
-  const handleOpenEditUserRoleDialog = (user: UserAccount) => {
+  const handleOpenEditUserDialog = (user: UserAccount) => {
     setEditingUser(user);
-    setIsEditUserRoleDialogOpen(true);
+    setIsEditUserDialogOpen(true);
   };
-
-  const handleUpdateUserRoleSubmit = (data: {role: UserRole}) => {
+  
+  const handleEditUserFormSubmit = (data: EditUserFormValues) => {
     if (editingUser) {
-      updateUserRole(editingUser.id, data.role);
-      toast({ title: "User Role Updated", description: `${editingUser.username}'s role has been updated.` });
+      const updateData: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string } = {
+        username: data.username,
+        role: data.role,
+      };
+      if (data.password && data.password.length > 0) { // Only include password if it's being changed
+        updateData.password = data.password;
+      }
+      updateUser(editingUser.id, updateData);
+      toast({ title: "User Updated", description: `${data.username}'s details have been updated.` });
       setEditingUser(null);
-      setIsEditUserRoleDialogOpen(false);
+      setIsEditUserDialogOpen(false);
+      editUserForm.reset();
     }
   };
 
@@ -199,7 +252,6 @@ export default function SettingsPage() {
         <h1 className="text-3xl font-headline font-bold text-primary">Settings</h1>
       </div>
       
-      {/* Restaurant Details Form */}
       <Form {...restaurantForm}>
         <form onSubmit={restaurantForm.handleSubmit(handleRestaurantDetailsSubmit)} className="space-y-6">
           <Card className="shadow-lg">
@@ -217,7 +269,6 @@ export default function SettingsPage() {
         </form>
       </Form>
 
-      {/* Branding Form */}
       <Form {...brandingForm}>
         <form onSubmit={brandingForm.handleSubmit(handleBrandingSubmit)} className="space-y-6">
           <Card className="shadow-lg">
@@ -226,35 +277,14 @@ export default function SettingsPage() {
               <CardDescription>Set your restaurant's logo. Provide a direct image URL.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField
-                control={brandingForm.control}
-                name="logoUrl"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Logo URL</FormLabel>
-                    <FormControl><Input placeholder="https://example.com/logo.png or https://placehold.co/100x40.png" {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              {settings.logoUrl && (
-                <div className="mt-2">
-                  <Label>Current Logo Preview:</Label>
-                  <div className="mt-1 p-2 border rounded-md inline-block bg-muted">
-                    <Image src={settings.logoUrl} alt="Logo Preview" width={100} height={40} className="object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} />
-                  </div>
-                </div>
-              )}
-              <Button type="submit" disabled={brandingForm.formState.isSubmitting}>
-                <Save className="mr-2 h-4 w-4" /> Save Branding
-              </Button>
+              <FormField control={brandingForm.control} name="logoUrl" render={({ field }) => ( <FormItem> <FormLabel>Logo URL</FormLabel> <FormControl><Input placeholder="https://example.com/logo.png or https://placehold.co/100x40.png" {...field} /></FormControl> <FormMessage /> </FormItem> )}/>
+              {settings.logoUrl && ( <div className="mt-2"> <Label>Current Logo Preview:</Label> <div className="mt-1 p-2 border rounded-md inline-block bg-muted"> <Image src={settings.logoUrl} alt="Logo Preview" width={100} height={40} className="object-contain" onError={(e) => (e.currentTarget.style.display = 'none')} /> </div> </div> )}
+              <Button type="submit" disabled={brandingForm.formState.isSubmitting}> <Save className="mr-2 h-4 w-4" /> Save Branding </Button>
             </CardContent>
           </Card>
         </form>
       </Form>
 
-
-      {/* Tax & Charges Form */}
       <Form {...taxForm}>
         <form onSubmit={taxForm.handleSubmit(handleTaxChargesSubmit)} className="space-y-6">
           <Card className="shadow-lg">
@@ -271,7 +301,6 @@ export default function SettingsPage() {
         </form>
       </Form>
       
-      {/* Printers & Devices Section */}
       <Card className="shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
@@ -283,47 +312,27 @@ export default function SettingsPage() {
               <Button variant="default"><PlusCircle className="mr-2 h-4 w-4" /> Add Printer</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Printer</DialogTitle>
-              </DialogHeader>
+              <DialogHeader> <DialogTitle>Add New Printer</DialogTitle> </DialogHeader>
               <Form {...printerForm}>
                 <form onSubmit={printerForm.handleSubmit(handleAddPrinterSubmit)} className="space-y-4">
                   <FormField control={printerForm.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Printer Name</FormLabel><FormControl><Input placeholder="e.g., Main Receipt Printer" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
                   <FormField control={printerForm.control} name="type" render={({ field }) => ( <FormItem> <FormLabel>Printer Type</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent> <SelectItem value="Receipt">Receipt</SelectItem> <SelectItem value="Kitchen">Kitchen</SelectItem> <SelectItem value="Label">Label</SelectItem> </SelectContent> </Select><FormMessage /> </FormItem> )}/>
-                  <DialogFooter>
-                    <Button type="submit">Add Printer</Button>
-                  </DialogFooter>
+                  <DialogFooter> <Button type="submit">Add Printer</Button> </DialogFooter>
                 </form>
               </Form>
             </DialogContent>
           </Dialog>
         </CardHeader>
         <CardContent>
-          {settings.printers.length === 0 ? (
-            <p className="text-muted-foreground">No printers configured yet.</p>
-          ) : (
+          {settings.printers.length === 0 ? ( <p className="text-muted-foreground">No printers configured yet.</p> ) : (
             <Table>
               <TableHeader><TableRow><TableHead>Name</TableHead><TableHead>Type</TableHead><TableHead className="text-center">Default</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {settings.printers.map((printer) => (
                   <TableRow key={printer.id}>
-                    <TableCell>{printer.name}</TableCell>
-                    <TableCell>{printer.type}</TableCell>
-                    <TableCell className="text-center">
-                      {settings.defaultPrinterId === printer.id ? 
-                        (<CheckCircle className="h-5 w-5 text-green-500 mx-auto" />) : 
-                        (<Button variant="ghost" size="sm" onClick={() => handleSetDefaultPrinter(printer.id)}>Set Default</Button>)
-                      }
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove the printer "{printer.name}"?</AlertDialogDescription></AlertDialogHeader>
-                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRemovePrinter(printer.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    </TableCell>
+                    <TableCell>{printer.name}</TableCell> <TableCell>{printer.type}</TableCell>
+                    <TableCell className="text-center"> {settings.defaultPrinterId === printer.id ? ( <CheckCircle className="h-5 w-5 text-green-500 mx-auto" /> ) : ( <Button variant="ghost" size="sm" onClick={() => handleSetDefaultPrinter(printer.id)}>Set Default</Button> )} </TableCell>
+                    <TableCell className="text-right"> <AlertDialog> <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger> <AlertDialogContent> <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove the printer "{printer.name}"?</AlertDialogDescription></AlertDialogHeader> <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRemovePrinter(printer.id)}>Delete</AlertDialogAction></AlertDialogFooter> </AlertDialogContent> </AlertDialog> </TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -332,53 +341,41 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* User Management Section */}
       <Card className="shadow-lg">
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="font-headline text-xl flex items-center"><Users className="mr-2 h-5 w-5" />User Management</CardTitle>
-            <CardDescription>Add or remove staff accounts and manage permissions. (Mock)</CardDescription>
+            <CardDescription>Add, edit, or remove staff accounts and manage permissions.</CardDescription>
           </div>
-           <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
+           <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
             <DialogTrigger asChild>
               <Button variant="default"><PlusCircle className="mr-2 h-4 w-4" /> Add User</Button>
             </DialogTrigger>
             <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New User</DialogTitle>
-              </DialogHeader>
-              <Form {...userForm}>
-                <form onSubmit={userForm.handleSubmit(handleAddUserSubmit)} className="space-y-4">
-                  <FormField control={userForm.control} name="username" render={({ field }) => ( <FormItem> <FormLabel>Username</FormLabel><FormControl><Input placeholder="e.g., john.doe" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
-                  <FormField control={userForm.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Role</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent> <SelectItem value="Admin">Admin</SelectItem> <SelectItem value="Manager">Manager</SelectItem> <SelectItem value="Staff">Staff</SelectItem> </SelectContent> </Select><FormMessage /> </FormItem> )}/>
-                  <DialogFooter>
-                    <Button type="submit">Add User</Button>
-                  </DialogFooter>
+              <DialogHeader> <DialogTitle>Add New User</DialogTitle> </DialogHeader>
+              <Form {...addUserForm}>
+                <form onSubmit={addUserForm.handleSubmit(handleAddUserFormSubmit)} className="space-y-4">
+                  <FormField control={addUserForm.control} name="username" render={({ field }) => ( <FormItem> <FormLabel>Username</FormLabel><FormControl><Input placeholder="e.g., john.doe" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                  <FormField control={addUserForm.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Role</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent> <SelectItem value="Admin">Admin</SelectItem> <SelectItem value="Manager">Manager</SelectItem> <SelectItem value="Staff">Staff</SelectItem> </SelectContent> </Select><FormMessage /> </FormItem> )}/>
+                  <FormField control={addUserForm.control} name="password" render={({ field }) => ( <FormItem> <FormLabel>Password (Optional)</FormLabel><FormControl><Input type="password" placeholder="Min. 6 characters (or leave blank for default)" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                  <FormField control={addUserForm.control} name="confirmPassword" render={({ field }) => ( <FormItem> <FormLabel>Confirm Password</FormLabel><FormControl><Input type="password" placeholder="Confirm password" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                  <DialogFooter> <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose> <Button type="submit">Add User</Button> </DialogFooter>
                 </form>
               </Form>
             </DialogContent>
           </Dialog>
         </CardHeader>
         <CardContent>
-           {settings.users.length === 0 ? (
-            <p className="text-muted-foreground">No users configured yet.</p>
-          ) : (
+           {settings.users.length === 0 ? ( <p className="text-muted-foreground">No users configured yet.</p> ) : (
             <Table>
               <TableHeader><TableRow><TableHead>Username</TableHead><TableHead>Role</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
               <TableBody>
                 {settings.users.map((user) => (
                   <TableRow key={user.id}>
-                    <TableCell>{user.username}</TableCell>
-                    <TableCell>{user.role}</TableCell>
+                    <TableCell>{user.username}</TableCell> <TableCell>{user.role}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditUserRoleDialog(user)}><Edit className="h-4 w-4" /></Button>
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive"><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove the user "{user.username}"?</AlertDialogDescription></AlertDialogHeader>
-                          <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRemoveUser(user.id)}>Delete</AlertDialogAction></AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                      <Button variant="ghost" size="icon" onClick={() => handleOpenEditUserDialog(user)}><Edit className="h-4 w-4" /></Button>
+                      <AlertDialog> <AlertDialogTrigger asChild><Button variant="ghost" size="icon" className="text-destructive" disabled={user.username === 'admin@example.com'}><Trash2 className="h-4 w-4" /></Button></AlertDialogTrigger> <AlertDialogContent> <AlertDialogHeader><AlertDialogTitle>Confirm Deletion</AlertDialogTitle><AlertDialogDescription>Are you sure you want to remove the user "{user.username}"?</AlertDialogDescription></AlertDialogHeader> <AlertDialogFooter><AlertDialogCancel>Cancel</AlertDialogCancel><AlertDialogAction onClick={() => handleRemoveUser(user.id)}>Delete</AlertDialogAction></AlertDialogFooter> </AlertDialogContent> </AlertDialog>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -388,37 +385,17 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Edit User Role Dialog */}
       {editingUser && (
-        <Dialog open={isEditUserRoleDialogOpen} onOpenChange={(open) => { if (!open) setEditingUser(null); setIsEditUserRoleDialogOpen(open);}}>
+        <Dialog open={isEditUserDialogOpen} onOpenChange={(open) => { if (!open) {setEditingUser(null); editUserForm.reset();} setIsEditUserDialogOpen(open);}}>
           <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Edit Role for {editingUser.username}</DialogTitle>
-            </DialogHeader>
-            <Form {...editUserRoleForm}>
-              <form onSubmit={editUserRoleForm.handleSubmit(handleUpdateUserRoleSubmit)} className="space-y-4">
-                <FormField
-                  control={editUserRoleForm.control}
-                  name="role"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>New Role</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl><SelectTrigger><SelectValue placeholder="Select new role" /></SelectTrigger></FormControl>
-                        <SelectContent>
-                          <SelectItem value="Admin">Admin</SelectItem>
-                          <SelectItem value="Manager">Manager</SelectItem>
-                          <SelectItem value="Staff">Staff</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose>
-                  <Button type="submit">Save Role</Button>
-                </DialogFooter>
+            <DialogHeader> <DialogTitle>Edit User: {editingUser.username}</DialogTitle> </DialogHeader>
+            <Form {...editUserForm}>
+              <form onSubmit={editUserForm.handleSubmit(handleEditUserFormSubmit)} className="space-y-4">
+                <FormField control={editUserForm.control} name="username" render={({ field }) => ( <FormItem> <FormLabel>Username</FormLabel><FormControl><Input placeholder="e.g., john.doe" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                <FormField control={editUserForm.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Role</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent> <SelectItem value="Admin">Admin</SelectItem> <SelectItem value="Manager">Manager</SelectItem> <SelectItem value="Staff">Staff</SelectItem> </SelectContent> </Select><FormMessage /> </FormItem> )}/>
+                <FormField control={editUserForm.control} name="password" render={({ field }) => ( <FormItem> <FormLabel>New Password (Optional)</FormLabel><FormControl><Input type="password" placeholder="Leave blank to keep current password" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                <FormField control={editUserForm.control} name="confirmPassword" render={({ field }) => ( <FormItem> <FormLabel>Confirm New Password</FormLabel><FormControl><Input type="password" placeholder="Confirm new password" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                <DialogFooter> <DialogClose asChild><Button type="button" variant="outline">Cancel</Button></DialogClose> <Button type="submit">Save Changes</Button> </DialogFooter>
               </form>
             </Form>
           </DialogContent>
