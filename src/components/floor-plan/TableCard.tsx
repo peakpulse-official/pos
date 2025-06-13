@@ -6,6 +6,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Users, User, Clock, CheckCircle, Utensils, Edit3, Trash2, Ban } from "lucide-react";
+import type { LucideIcon } from "lucide-react"; 
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,7 +25,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
-import { Input } from "../ui/input";
+import { Input } from "@/components/ui/input";
 
 
 const statusConfig: Record<TableStatus, { icon: LucideIcon, label: string, colorClass: string, badgeVariant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -67,7 +68,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
 
 
   return (
-    <Card className={`shadow-md hover:shadow-lg transition-shadow border-l-4 ${currentStatusConfig.badgeVariant === 'default' ? 'border-primary' : currentStatusConfig.badgeVariant === 'destructive' ? 'border-destructive' : 'border-border'}`}>
+    <Card className="shadow-md hover:shadow-lg transition-shadow border-l-4 border-primary"> {/* Simplified className for testing */}
       <CardHeader className="pb-2 pt-3 px-3">
         <div className="flex justify-between items-center">
           <CardTitle className="text-lg font-headline">{table.name}</CardTitle>
@@ -93,14 +94,14 @@ export function TableCard({ table, waiters }: TableCardProps) {
               className="text-xs h-16" 
             />
             <div className="flex justify-end space-x-1">
-              <Button size="xs" variant="ghost" onClick={()={() => setIsEditingNotes(false)}}>Cancel</Button>
-              <Button size="xs" onClick={handleNotesSave}>Save</Button>
+              <Button size="sm" variant="ghost" onClick={() => setIsEditingNotes(false)} className="text-xs px-2 h-7">Cancel</Button>
+              <Button size="sm" onClick={handleNotesSave} className="text-xs px-2 h-7">Save</Button>
             </div>
           </div>
         ) : (
           <div 
             className="text-xs text-muted-foreground min-h-[2.5rem] p-1.5 rounded-sm hover:bg-muted/50 cursor-pointer"
-            onClick={()={() => setIsEditingNotes(true)}}
+            onClick={() => setIsEditingNotes(true)}
             title="Click to edit notes"
           >
             {table.notes ? (
@@ -115,7 +116,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
       <CardFooter className="py-2 px-3 flex justify-end space-x-1">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="xs" className="text-xs">
+            <Button variant="outline" size="sm" className="text-xs px-2 h-8">
               <Edit3 className="mr-1 h-3 w-3" /> Change
             </Button>
           </DropdownMenuTrigger>
@@ -160,53 +161,9 @@ export function TableCard({ table, waiters }: TableCardProps) {
                     </DropdownMenuSubContent>
                 </DropdownMenuPortal>
             </DropdownMenuSub>
-            {/* <DropdownMenuItem onClick={() => setIsEditingNotes(true)}>
-                <Edit3 className="mr-2 h-4 w-4" /> Edit Notes
-            </DropdownMenuItem> */}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardFooter>
     </Card>
   );
 }
-
-// Add this to your Button component if 'xs' size is needed globally, or style locally
-// In src/components/ui/button.tsx, under variants.size:
-// xs: "h-7 rounded-md px-2 text-xs",
-// And update TailwindCSS to handle 'size-xs' for Button in src/components/ui/button.tsx variant props
-// Add size variant 'xs' to buttonVariants in src/components/ui/button.tsx like:
-// const buttonVariants = cva(
-//   "...", {
-//     variants: {
-//       // ... other variants
-//       size: {
-//         default: "h-10 px-4 py-2",
-//         sm: "h-9 rounded-md px-3",
-//         lg: "h-11 rounded-md px-8",
-//         icon: "h-10 w-10",
-//         xs: "h-7 rounded-sm px-2 text-xs", // Added xs
-//       },
-//     },
-//     //...
-//   }
-// )
-// For simplicity, I've used size="xs" which is not standard in ShadCN. 
-// A more robust way is to add 'xs' to buttonVariants or use specific padding/height classes.
-// Using existing `size="sm"` and tweaking padding with `className="px-2 py-1 h-auto text-xs"` is also an option for local adjustments.
-// For now, I'll rely on direct styling if size="xs" is not pre-defined globally.
-// It seems `size="xs"` is not standard. Let's use `size="sm"` and adjust classNames or accept slightly larger buttons for now.
-// For the purpose of this prototype and avoiding modification of shared UI components unless necessary,
-// I will use size="sm" for these action buttons or apply specific height/padding.
-// Let's go with size="sm" and it should be fine.
-// The dropdown menu items naturally handle their own sizing.
-
-// Corrected usage for Button: use size="sm" or custom classes for smaller buttons.
-// Reverted Button size to "sm" where "xs" was used, or use custom styling if finer control is needed.
-// For the TableCard footer buttons, using size="sm" with text-xs on the text inside should work.
-// <Button variant="outline" size="sm" className="text-xs">
-//  <Edit3 className="mr-1 h-3 w-3" /> Change
-// </Button>
-// For notes save/cancel:
-// <Button size="sm" variant="ghost" onClick={() => setIsEditingNotes(false)} className="text-xs">Cancel</Button>
-// <Button size="sm" onClick={handleNotesSave} className="text-xs">Save</Button>
-// This ensures we don't assume a non-standard Button size.
