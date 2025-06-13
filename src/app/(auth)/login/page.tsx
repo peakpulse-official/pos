@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Form,
@@ -18,9 +19,11 @@ import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { LogIn, UserPlus } from "lucide-react"
+import { useSettings } from "@/contexts/SettingsContext"
 
+// Login form expects 'email' but UserAccount has 'username'. We'll treat email as username for login.
 const loginSchema = z.object({
-  email: z.string().email({ message: "Invalid email address." }),
+  email: z.string().min(1, { message: "Username (email) is required." }), // Changed from .email() to allow general usernames
   password: z.string().min(1, { message: "Password is required." }),
 })
 
@@ -28,6 +31,9 @@ type LoginFormValues = z.infer<typeof loginSchema>
 
 export default function LoginPage() {
   const { toast } = useToast()
+  const router = useRouter()
+  const { loginUser, isLoading } = useSettings()
+
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -36,16 +42,32 @@ export default function LoginPage() {
     },
   })
 
-  const onSubmit = (data: LoginFormValues) => {
-    // In a real application, this is where you would send data to your backend
-    // to authenticate the user.
-    console.log("Login data:", data)
-    toast({
-      title: "Login Attempted (Mock)",
-      description: "User credentials logged to console. Integrate a backend to complete login.",
-      variant: "default"
-    })
-    // form.reset(); // Optionally reset form
+  const onSubmit = async (data: LoginFormValues) => {
+    const authenticatedUser = await loginUser(data.email, data.password)
+
+    if (authenticatedUser) {
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${authenticatedUser.username}! (Role: ${authenticatedUser.role})`,
+        variant: "default"
+      })
+      // Redirect based on role
+      if (authenticatedUser.role === "Admin" || authenticatedUser.role === "Manager") {
+        router.push("/floor-plan")
+      } else if (authenticatedUser.role === "Staff") {
+        router.push("/waiter-view")
+      } else {
+        router.push("/order") // Default page
+      }
+    } else {
+      toast({
+        title: "Login Failed",
+        description: "Invalid username or password. (Hint: For prototype, try 'admin@example.com' with 'password123' or any user from settings with 'password123')",
+        variant: "destructive"
+      })
+      form.setError("email", { type: "manual", message: " " }) // Add error to trigger field re-render
+      form.setError("password", { type: "manual", message: "Invalid username or password." })
+    }
   }
 
   return (
@@ -63,9 +85,9 @@ export default function LoginPage() {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Email Address</FormLabel>
+                  <FormLabel>Username (Email)</FormLabel>
                   <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} />
+                    <Input type="text" placeholder="user@example.com or username" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -85,10 +107,10 @@ export default function LoginPage() {
               )}
             />
              <Button variant="link" asChild className="p-0 h-auto text-sm justify-start">
-                <Link href="#">Forgot password?</Link>
+                <Link href="#">Forgot password? (Mock)</Link>
             </Button>
-            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting}>
-              {form.formState.isSubmitting ? "Signing In..." : "Sign In"}
+            <Button type="submit" className="w-full" disabled={form.formState.isSubmitting || isLoading}>
+              {form.formState.isSubmitting || isLoading ? "Signing In..." : "Sign In"}
             </Button>
           </form>
         </Form>
@@ -97,9 +119,12 @@ export default function LoginPage() {
         <p className="text-muted-foreground">Don't have an account?</p>
         <Button variant="link" asChild className="p-1">
           <Link href="/register">
-            <UserPlus className="mr-2 h-4 w-4" /> Create Account
+            <UserPlus className="mr-2 h-4 w-4" /> Create Account (Mock)
           </Link>
         </Button>
+         <p className="text-xs text-muted-foreground mt-4 text-center">
+            Prototype Login: Use 'admin@example.com' with password 'password123', or any user added in Settings (default password 'password123').
+        </p>
       </CardFooter>
     </Card>
   )

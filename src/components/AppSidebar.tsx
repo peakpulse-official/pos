@@ -3,7 +3,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
   ShoppingCart,
   BookOpenText,
@@ -15,6 +15,11 @@ import {
   Rocket,
   LayoutGrid, 
   Clipboard, 
+  LogOut,
+  LogIn as LogInIcon, // For Check-in
+  LogOut as LogOutIcon, // For Check-out
+  CalendarCheck, // For Attendance
+  UserCircle,
 } from "lucide-react"
 import {
   Sidebar,
@@ -25,29 +30,62 @@ import {
   SidebarMenuButton,
   SidebarFooter,
   useSidebar,
+  SidebarSeparator,
 } from "@/components/ui/sidebar" 
 import { cn } from "@/lib/utils"
 import { useSettings } from "@/contexts/SettingsContext"
+import { Button } from "./ui/button"
+import { useToast } from "@/hooks/use-toast"
 
 
 const navItems = [
   { href: "/order", label: "Order", icon: ShoppingCart },
   { href: "/menu", label: "Menu", icon: BookOpenText },
   { href: "/billing", label: "Billing", icon: Printer },
-  { href: "/floor-plan", label: "Floor Plan (Admin)", icon: LayoutGrid },
-  { href: "/waiter-view", label: "Waiter View", icon: Clipboard }, 
-  { href: "/reports", label: "Reports", icon: BarChart3 },
+  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, adminOnly: true }, // Example admin only
+  { href: "/waiter-view", label: "Waiter View", icon: Clipboard, staffOnly: true }, 
+  { href: "/reports", label: "Reports", icon: BarChart3, adminOnly: true },
   { href: "/recommendations", label: "AI Recommends", icon: Sparkles },
+  { href: "/attendance", label: "Attendance", icon: CalendarCheck, adminOnly: true }, // For viewing logs
   { href: "/setup-guide", label: "Setup Guide", icon: Rocket },
 ]
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const router = useRouter()
+  const { toast } = useToast()
   const { state } = useSidebar();
-  const { settings, isLoading: settingsLoading } = useSettings();
+  const { settings, isLoading: settingsLoading, currentUser, logoutUser, checkInUser, checkOutUser, getTodaysTimeLogForCurrentUser } = useSettings();
 
   const logoUrl = settings?.logoUrl;
   const restaurantName = settings?.restaurantName || "Annapurna POS";
+
+  const handleLogout = () => {
+    logoutUser();
+    toast({ title: "Logged Out", description: "You have been successfully logged out." });
+    router.push("/login");
+  }
+
+  const todaysLog = getTodaysTimeLogForCurrentUser();
+  const isCheckedIn = !!todaysLog;
+
+  const handleCheckInOut = () => {
+    if (isCheckedIn) {
+      checkOutUser();
+      toast({ title: "Checked Out", description: "Successfully checked out for the day." });
+    } else {
+      checkInUser();
+      toast({ title: "Checked In", description: "Successfully checked in." });
+    }
+  }
+
+  const filteredNavItems = navItems.filter(item => {
+    if (!currentUser) return !item.adminOnly && !item.staffOnly; // Show general items if not logged in (though layout should prevent this)
+    if (item.adminOnly && (currentUser.role !== 'Admin' && currentUser.role !== 'Manager')) return false;
+    if (item.staffOnly && currentUser.role !== 'Staff') return false; // Staff also includes waiters for this context
+    return true;
+  });
+
 
   return (
     <Sidebar collapsible="icon" variant="sidebar" side="left">
@@ -56,32 +94,40 @@ export function AppSidebar() {
           <Image 
             src={logoUrl} 
             alt="Logo" 
-            width={state === "collapsed" ? 32 : 40} // size in px
-            height={state === "collapsed" ? 32 : 40} // size in px
+            width={state === "collapsed" ? 32 : 40} 
+            height={state === "collapsed" ? 32 : 40}
             className={cn(
               "object-contain transition-all duration-300 ease-in-out",
               state === "collapsed" ? "max-h-8" : "max-h-10"
             )}
-            onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget. RREPLACE_WITH_ICON = true; }} // Fallback handled by rendering ChefHat
+            onError={(e) => { (e.currentTarget as any).RREPLACE_WITH_ICON = true; e.currentTarget.style.display = 'none'; }}
           />
         ) : (
           <ChefHat className={cn("transition-all duration-300 ease-in-out", state === "collapsed" ? "size-8" : "size-10 text-primary")} />
         )}
-         {/* This is a bit of a hack to re-render the ChefHat if image fails, could be improved with a dedicated state */}
         {logoUrl && typeof document !== 'undefined' && (document.querySelector(`img[src="${logoUrl}"]`) as any)?.RREPLACE_WITH_ICON && (
            <ChefHat className={cn("transition-all duration-300 ease-in-out", state === "collapsed" ? "size-8" : "size-10 text-primary")} />
         )}
 
         <h1 className={cn(
           "font-headline text-2xl font-bold text-primary transition-opacity duration-200 ease-in-out whitespace-nowrap overflow-hidden text-ellipsis",
-          state === "collapsed" ? "opacity-0 w-0" : "opacity-100 ml-2" // Added ml-2 for spacing when expanded
+          state === "collapsed" ? "opacity-0 w-0" : "opacity-100 ml-2" 
         )}>
           {restaurantName}
         </h1>
       </SidebarHeader>
+
+      {currentUser && state !== "collapsed" && (
+        <div className="px-4 py-2 text-center border-b border-t border-sidebar-border">
+          <UserCircle className="inline-block h-6 w-6 mr-2 text-sidebar-foreground/80" />
+          <p className="text-sm font-medium text-sidebar-foreground truncate">{currentUser.username}</p>
+          <p className="text-xs text-sidebar-foreground/70">{currentUser.role}</p>
+        </div>
+      )}
+      
       <SidebarContent className="p-2">
         <SidebarMenu>
-          {navItems.map((item) => (
+          {filteredNavItems.map((item) => (
             <SidebarMenuItem key={item.href}>
               <SidebarMenuButton
                 asChild
@@ -98,18 +144,49 @@ export function AppSidebar() {
           ))}
         </SidebarMenu>
       </SidebarContent>
-      <SidebarFooter className="p-4">
-        <SidebarMenuButton 
-          asChild 
-          tooltip="Settings" 
-          className="justify-start"
-          isActive={pathname.startsWith('/settings')}
-        >
-            <Link href="/settings">
-                <Settings />
-                <span>Settings</span>
-            </Link>
-        </SidebarMenuButton>
+
+      <SidebarSeparator />
+
+      {currentUser && (
+        <div className="p-2 space-y-2">
+            <Button
+                variant={isCheckedIn ? "destructive" : "default"}
+                onClick={handleCheckInOut}
+                className={cn("w-full justify-start", state === "collapsed" ? "justify-center" : "")}
+                size={state === "collapsed" ? "icon" : "default"}
+                title={isCheckedIn ? "Check Out" : "Check In"}
+            >
+                {isCheckedIn ? <LogOutIcon /> : <LogInIcon />}
+                {state !== "collapsed" && (isCheckedIn ? "Check Out" : "Check In")}
+            </Button>
+        </div>
+      )}
+
+      <SidebarFooter className="p-2 mt-auto">
+        {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
+            <SidebarMenuButton 
+            asChild 
+            tooltip="Settings" 
+            className="justify-start"
+            isActive={pathname.startsWith('/settings')}
+            >
+                <Link href="/settings">
+                    <Settings />
+                    <span>Settings</span>
+                </Link>
+            </SidebarMenuButton>
+        )}
+        {currentUser && (
+            <SidebarMenuButton 
+            variant="ghost"
+            tooltip="Logout" 
+            className="justify-start text-destructive hover:bg-destructive/10 hover:text-destructive"
+            onClick={handleLogout}
+            >
+                <LogOut />
+                <span>Logout</span>
+            </SidebarMenuButton>
+        )}
       </SidebarFooter>
     </Sidebar>
   )

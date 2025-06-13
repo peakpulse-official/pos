@@ -1,4 +1,4 @@
-import type { MenuCategory, MenuItem, Order, DailySales } from './types';
+import type { MenuCategory, MenuItem, Order, DailySales, AppSettings } from './types';
 import { Coffee, Sandwich, Pizza, IceCream, Utensils, Zap } from 'lucide-react';
 
 export const categories: MenuCategory[] = [
@@ -88,4 +88,22 @@ export const mockDailySales: DailySales = {
     { itemId: 'item4', name: 'Samosa (2 pcs)', quantitySold: 12 },
     { itemId: 'item3', name: 'Nepali Tea (Chiya)', quantitySold: 15 },
   ].sort((a,b) => b.quantitySold - a.quantitySold),
+};
+
+export const defaultAppSettings: AppSettings = {
+  restaurantName: 'Annapurna POS',
+  restaurantAddress: 'Kathmandu, Nepal',
+  restaurantContact: '+977-1-4XXXXXX',
+  logoUrl: '',
+  vatRate: 0.13,
+  serviceChargeRate: 0.10,
+  printers: [],
+  defaultPrinterId: null,
+  users: [ // Add a default admin user for easier initial testing
+    { id: 'admin-default', username: 'admin@example.com', password: 'password123', role: 'Admin' }
+  ],
+  tables: [],
+  waiters: [],
+  currentUser: null,
+  timeLogs: [],
 };

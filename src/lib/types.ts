@@ -59,9 +59,25 @@ export interface PrinterDevice {
 export type UserRole = "Admin" | "Staff" | "Manager";
 export interface UserAccount {
   id: string;
+  username: string; // This will be used as the login identifier (e.g., email)
+  password?: string; // For prototype: plain text. DO NOT USE IN PRODUCTION.
+  role: UserRole;
+}
+
+export interface AuthenticatedUser {
+  id: string;
   username: string;
   role: UserRole;
-  // passwordHash?: string; // For backend reference, not stored in frontend settings
+}
+
+export interface TimeLog {
+  id: string;
+  userId: string;
+  username: string;
+  role: UserRole;
+  checkInTime: string; // ISO string
+  checkOutTime?: string; // ISO string
+  date: string; // YYYY-MM-DD
 }
 
 export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
@@ -85,14 +101,16 @@ export interface AppSettings {
   restaurantName: string;
   restaurantAddress: string;
   restaurantContact: string;
-  logoUrl?: string; // New field for custom logo URL
-  vatRate: number; // e.g., 0.13 for 13%
-  serviceChargeRate: number; // e.g., 0.10 for 10%
+  logoUrl?: string; 
+  vatRate: number; 
+  serviceChargeRate: number; 
   printers: PrinterDevice[];
   defaultPrinterId: string | null;
   users: UserAccount[];
   tables: TableDefinition[];
   waiters: Waiter[];
+  currentUser: AuthenticatedUser | null; // Added for auth state
+  timeLogs: TimeLog[]; // Added for check-in/out
 }
 
 // Mock order items for waiter view demonstration
