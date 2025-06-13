@@ -2,7 +2,7 @@
 // src/app/(app)/setup-guide/page.tsx
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Terminal, Database, Users, Printer, Wifi, Cloud, ShieldCheck, Rocket, AlertTriangle, ExternalLink } from "lucide-react";
+import { Terminal, Database, Users, Printer, Wifi, Cloud, ShieldCheck, Rocket, AlertTriangle, ExternalLink, KeyRound, ServerIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
@@ -19,13 +19,13 @@ export default function SetupGuidePage() {
         <AlertTitle className="font-semibold !text-destructive dark:!text-red-400 text-lg">Critical: This is a Prototype Application</AlertTitle>
         <AlertDescription className="!text-destructive/80 dark:!text-red-400/80 mt-1">
           The Annapurna POS application you are currently using is a **prototype designed for demonstration and development in Firebase Studio**.
-          It uses your browser's LocalStorage for all data (menu, orders, settings), which means:
+          It uses your browser's LocalStorage for most data (menu, orders, settings), which means:
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Data is **not shared** between different computers or users.</li>
             <li>Data can be **easily lost** if browser history/cache is cleared.</li>
             <li>Features like user logins and real printer connections are **mocked or simplified**.</li>
           </ul>
-          To use this application in a real restaurant, **significant software development work is required**. The steps below outline what's involved. This is not a simple configuration task; it requires coding and system setup expertise.
+          To use this application in a real restaurant, **significant software development work is required**. The steps below outline what's involved. This is not a simple configuration task; it requires coding and system setup expertise. The Register and Login pages are currently UI mockups.
         </AlertDescription>
       </Alert>
 
@@ -123,36 +123,91 @@ export default function SetupGuidePage() {
 
       <Card className="shadow-lg">
         <CardHeader>
-          <CardTitle className="font-headline text-xl flex items-center"><Users className="mr-2 h-5 w-5 text-primary" />3. User Authentication & Authorization</CardTitle>
-          <CardDescription>Secure login for staff and role-based access.</CardDescription>
+          <CardTitle className="font-headline text-xl flex items-center"><KeyRound className="mr-2 h-5 w-5 text-primary" />3. Fullstack User Authentication & Authorization</CardTitle>
+          <CardDescription>Implementing secure login, registration, and role-based access.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 text-muted-foreground">
+          <Alert variant="default" className="bg-blue-50 border-blue-300 dark:bg-blue-900/20 dark:border-blue-600">
+            <ServerIcon className="h-4 w-4 !text-blue-600 dark:!text-blue-400" />
+            <AlertTitle className="font-semibold !text-blue-700 dark:!text-blue-300">Backend System Required</AlertTitle>
+            <AlertDescription className="!text-blue-700/80 dark:!text-blue-400/80">
+              The current Login and Register pages are UI mockups. True authentication requires a secure backend.
+            </AlertDescription>
+          </Alert>
            <div>
-            <h4 className="font-semibold text-foreground mb-1">Step 3.1: Choose an Authentication Provider</h4>
-             <ul className="list-disc list-outside pl-5 space-y-2 mt-1">
+            <h4 className="font-semibold text-foreground mb-1">Step 3.1: Choose an Authentication Strategy & Provider</h4>
+            <p>You need a system to securely manage user identities, logins, and sessions. Directly handling passwords in your frontend or a simple database is highly insecure.</p>
+             <ul className="list-disc list-outside pl-5 space-y-3 mt-2">
                 <li>
-                    <strong>Firebase Authentication (Recommended with Firebase):</strong>
-                    <p className="text-xs">Provides easy-to-use SDKs for user sign-up, sign-in (email/password, phone, social logins), password reset, and more. User data is stored securely by Firebase.</p>
-                     <p className="text-xs mt-1"><strong>Setup:</strong> Enable Firebase Authentication in your Firebase console and configure desired sign-in methods.</p>
-                     <Button variant="link" size="sm" asChild className="p-0 h-auto">
-                        <Link href="https://firebase.google.com/docs/auth" target="_blank" rel="noopener noreferrer">Learn more about Firebase Auth <ExternalLink className="ml-1 h-3 w-3" /></Link>
+                    <strong className="block">Firebase Authentication (Recommended with Firebase Ecosystem):</strong>
+                    <p className="text-xs">Provides a complete backend service for user sign-up, sign-in (email/password, phone, social logins like Google), password reset, email verification, and more. User credentials are not stored by you; Firebase handles the security.</p>
+                    <p className="text-xs mt-1"><strong>Key Actions:</strong></p>
+                    <ol className="list-decimal list-inside pl-4 text-xs space-y-1 mt-1">
+                        <li>Set up a Firebase project at <Link href="https://console.firebase.google.com/" target="_blank" rel="noopener noreferrer" className="text-primary underline">console.firebase.google.com</Link>.</li>
+                        <li>In your Firebase project, enable "Authentication" and choose desired sign-in methods (e.g., Email/Password).</li>
+                        <li>Install the Firebase SDK in your Next.js app: `npm install firebase`.</li>
+                        <li>Initialize Firebase in your app (typically in a client-side configuration file).</li>
+                        <li>
+                          Use Firebase Auth SDK functions in your `/register/page.tsx` and `/login/page.tsx`:
+                          <ul className="list-disc list-outside pl-5 space-y-1 mt-1">
+                            <li>Registration: `createUserWithEmailAndPassword(auth, email, password)`</li>
+                            <li>Login: `signInWithEmailAndPassword(auth, email, password)`</li>
+                            <li>Logout: `signOut(auth)`</li>
+                          </ul>
+                        </li>
+                        <li>Optionally, store additional user profile information (like roles) in Cloud Firestore, linked to the Firebase Auth user ID (UID).</li>
+                    </ol>
+                     <Button variant="link" size="sm" asChild className="p-0 h-auto mt-1">
+                        <Link href="https://firebase.google.com/docs/auth/web/start" target="_blank" rel="noopener noreferrer">Firebase Auth Web Start Guide <ExternalLink className="ml-1 h-3 w-3" /></Link>
                     </Button>
                 </li>
                 <li>
-                    <strong>NextAuth.js:</strong> A comprehensive open-source authentication library for Next.js. Highly configurable.
+                    <strong className="block">NextAuth.js (Flexible, Self-Hosted Option):</strong>
+                    <p className="text-xs">An open-source authentication library specifically for Next.js. It's highly configurable and supports various providers (OAuth, email, credentials) and database adapters. Gives you more control but also more responsibility.</p>
+                     <p className="text-xs mt-1"><strong>Key Actions:</strong></p>
+                    <ol className="list-decimal list-inside pl-4 text-xs space-y-1 mt-1">
+                       <li>Install NextAuth.js: `npm install next-auth`.</li>
+                       <li>Create an API route (e.g., `src/app/api/auth/[...nextauth]/route.ts`) to handle authentication requests.</li>
+                       <li>Configure providers (e.g., CredentialsProvider for email/password, or OAuth providers like Google).</li>
+                       <li>If using CredentialsProvider, you'll need to implement logic to verify credentials against your user database (e.g., Firestore, PostgreSQL). This means hashing passwords securely on registration and comparing hashes on login.</li>
+                       <li>Wrap your application in `<SessionProvider>` from `next-auth/react`.</li>
+                    </ol>
+                    <Button variant="link" size="sm" asChild className="p-0 h-auto mt-1">
+                        <Link href="https://next-auth.js.org/getting-started/introduction" target="_blank" rel="noopener noreferrer">NextAuth.js Introduction <ExternalLink className="ml-1 h-3 w-3" /></Link>
+                    </Button>
                 </li>
              </ul>
            </div>
            <div>
-            <h4 className="font-semibold text-foreground mb-1">Step 3.2: Implement Login/Registration UI</h4>
-            <p>Create pages or modals for users to log in or register. The current "User Management" in settings is purely a mock and needs to be replaced.</p>
+            <h4 className="font-semibold text-foreground mb-1 mt-3">Step 3.2: Manage User State & Sessions</h4>
+            <p>Once a user logs in, your application needs to "remember" they are logged in and who they are. Both Firebase Auth and NextAuth.js help with this:</p>
+            <ul className="list-disc list-outside pl-5 space-y-1 mt-1 text-xs">
+                <li><strong>Firebase Auth:</strong> Provides an `onAuthStateChanged` listener to track the current user's sign-in state. You can use this to update a global React Context or state management solution (like Zustand, Redux) with the user object.</li>
+                <li><strong>NextAuth.js:</strong> Provides hooks like `useSession()` to access the session data (which includes user information) on the client-side, and `getServerSession()` for server components/API routes.</li>
+            </ul>
            </div>
            <div>
-            <h4 className="font-semibold text-foreground mb-1">Step 3.3: Protect Routes and Features</h4>
-            <p>Modify the application to:</p>
-            <ul className="list-disc list-outside pl-5 space-y-1 mt-1">
-                <li>Redirect unauthenticated users to a login page.</li>
-                <li>Show/hide UI elements or restrict access to pages (like Settings, Reports) based on the logged-in user's role (e.g., Admin, Manager, Staff). This involves checking the user's role (stored in your database alongside their auth record) after they log in.</li>
+            <h4 className="font-semibold text-foreground mb-1 mt-3">Step 3.3: Protect Routes and Implement Authorization (Roles)</h4>
+            <p>Not all users should access all pages (e.g., only Admins access Settings). This is authorization.</p>
+            <ul className="list-disc list-outside pl-5 space-y-1 mt-1 text-xs">
+                <li>Store user roles in your database (e.g., Firestore) associated with their user ID.</li>
+                <li>
+                  **Route Protection:**
+                  <ul className="list-disc list-outside pl-5 space-y-1 mt-1">
+                    <li>**Middleware (Next.js):** Create `middleware.ts` to check authentication status and roles for specific paths, redirecting if unauthorized. This is a robust way to protect pages server-side.</li>
+                    <li>**Server Components:** Check session/role directly in Server Components and conditionally render content or redirect.</li>
+                    <li>**Client Components:** Use the user state/session from your context/`useSession()` to conditionally render UI elements or redirect. This is good for UI changes but shouldn't be the only protection for sensitive data/actions.</li>
+                  </ul>
+                </li>
+                <li>Modify UI elements (e.g., sidebar links, buttons) based on the user's role. The current "User Management" section in settings would be replaced by actual user data from your database.</li>
+            </ul>
+           </div>
+           <div>
+            <h4 className="font-semibold text-foreground mb-1 mt-3">Step 3.4: Security Best Practices</h4>
+            <ul className="list-disc list-outside pl-5 space-y-1 mt-1 text-xs">
+                <li>**Password Hashing:** If you manage passwords yourself (e.g., with NextAuth.js CredentialsProvider), always hash passwords using a strong, salted algorithm (e.g., bcrypt, Argon2) before storing them. **Never store plain text passwords.** Firebase Auth handles this for you.</li>
+                <li>**HTTPS:** Ensure your application is served over HTTPS in production.</li>
+                <li>**Session Management:** Use secure session management techniques (NextAuth.js and Firebase Auth help with this).</li>
             </ul>
            </div>
         </CardContent>
@@ -198,7 +253,7 @@ export default function SetupGuidePage() {
             </div>
         </CardContent>
       </Card>
-      
+
       <Card className="shadow-lg">
         <CardHeader>
           <CardTitle className="font-headline text-xl flex items-center"><Wifi className="mr-2 h-5 w-5 text-primary" />5. Networking & Hardware Setup</CardTitle>
