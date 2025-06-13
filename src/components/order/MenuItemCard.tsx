@@ -48,10 +48,10 @@ export function MenuItemCard({ item, onAddItem }: MenuItemCardProps) {
           </CardDescription>
           {item.recipe && (
             <div className="text-xs text-muted-foreground mt-1 mb-2">
-              <p className="truncate">
-                <strong>Recipe: </strong>{getRecipeSnippet(item.recipe)}
+              <p> {/* Removed truncate class from here */}
+                <strong>Recipe: </strong>{getRecipeSnippet(item.recipe, 50)}
                 {item.recipe.length > 50 && (
-                  <Button variant="link" size="sm" className="p-0 h-auto ml-1 text-xs" onClick={() => setRecipeItem(item)}>
+                  <Button variant="link" size="sm" className="p-0 h-auto ml-1 text-xs align-baseline" onClick={() => setRecipeItem(item)}>
                     View
                   </Button>
                 )}

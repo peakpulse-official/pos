@@ -242,7 +242,7 @@ export default function MenuPage() {
                               )}
                             </TableCell>
                             <TableCell className="font-medium">{item.name}</TableCell>
-                            <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
+                            <TableCell className="text-xs text-muted-foreground max-w-[250px]">
                               {item.recipe ? (
                                 <>
                                   {getRecipeSnippet(item.recipe)}
