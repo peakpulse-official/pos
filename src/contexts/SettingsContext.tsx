@@ -3,8 +3,8 @@
 
 import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, AuthenticatedUser, TimeLog, UserRole, OrderItem } from '@/lib/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { MOCK_WAITER_ORDER_ITEMS } from '@/lib/types'; 
-import { defaultAppSettings } from '@/lib/data'; 
+import { MOCK_WAITER_ORDER_ITEMS } from '@/lib/types';
+import { defaultAppSettings } from '@/lib/data';
 import { format } from 'date-fns';
 
 const LOCAL_STORAGE_KEY = 'annapurnaAppSettings';
@@ -25,15 +25,15 @@ interface SettingsContextType {
   removePrinter: (printerId: string) => void;
   setDefaultPrinter: (printerId: string | null) => void;
   // Users
-  addUser: (user: Omit<UserAccount, 'id' | 'password'> & { password?: string }) => void; 
+  addUser: (user: Omit<UserAccount, 'id' | 'password'> & { password?: string }) => void;
   updateUserRole: (userId: string, newRole: UserAccount['role']) => void;
   removeUser: (userId: string) => void;
   // Tables
   addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes'>) => void;
   updateTable: (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => void;
   removeTable: (tableId: string) => void;
-  assignMockOrderToTable: (tableId: string) => void; 
-  clearMockOrderFromTable: (tableId: string) => void; 
+  assignMockOrderToTable: (tableId: string) => void;
+  clearMockOrderFromTable: (tableId: string) => void;
   // Waiters
   addWaiter: (waiterData: Omit<Waiter, 'id'>) => void;
   updateWaiter: (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => void;
@@ -54,41 +54,59 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const storedSettings = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedSettings) {
         const parsedSettings: AppSettings = JSON.parse(storedSettings);
-        
-        let usersToProcess = defaultAppSettings.users; // Default to seed admin
-        if (parsedSettings.users && parsedSettings.users.length > 0) {
-          usersToProcess = parsedSettings.users; // If stored users exist and are not empty, use them
-        }
-        const validatedUsers = usersToProcess.map(u => ({...u, password: u.password || 'password123' }));
 
-        const validatedTables = (parsedSettings.tables || []).map((table: TableDefinition) => ({
+        // Process users: Ensure default admin if none, and all have passwords
+        let usersList: UserAccount[];
+        if (parsedSettings.users && Array.isArray(parsedSettings.users) && parsedSettings.users.length > 0) {
+          usersList = parsedSettings.users.map(u => ({ ...u, password: u.password || 'password123' }));
+        } else {
+          // If no users in storage, or empty array, start with default users (includes admin)
+          usersList = defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' }));
+        }
+
+        // Process tables
+        const tablesList = (parsedSettings.tables || defaultAppSettings.tables || []).map((table: TableDefinition) => ({
           ...table,
           currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined)
         }));
-        
-        const finalSettings: AppSettings = { 
+
+        // Construct final settings: start with app defaults, then overwrite with stored, then with processed lists
+        const finalSettings: AppSettings = {
           ...defaultAppSettings, // Base defaults
-          ...parsedSettings,     // Overlay with anything from storage (includes stored currentUser)
-          users: validatedUsers, // Specifically set validated users
-          tables: validatedTables, // Specifically set validated tables
+          ...parsedSettings,     // Overlay with general stored settings (like restaurantName, vatRate, etc.)
+          users: usersList,       // Specifically use the processed list of users
+          tables: tablesList,     // Specifically use the processed list of tables
+          currentUser: parsedSettings.currentUser || null, // Prioritize stored currentUser
         };
+
         setSettings(finalSettings);
-        setCurrentUser(finalSettings.currentUser || null); // currentUser from merged object
+        setCurrentUser(finalSettings.currentUser || null);
 
       } else {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultAppSettings));
-         setSettings(defaultAppSettings); // defaultAppSettings already has the admin user
-         setCurrentUser(null);
+        // No stored settings, use defaults (which already ensure admin password) and persist them
+        const initialSettingsWithPasswords = {
+          ...defaultAppSettings,
+          users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' })),
+          currentUser: null,
+        };
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(initialSettingsWithPasswords));
+        setSettings(initialSettingsWithPasswords);
+        setCurrentUser(null);
       }
     } catch (error) {
       console.error("Failed to load settings from localStorage, resetting to defaults.", error);
-      // Fallback to default settings if parsing fails or any other error occurs
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(defaultAppSettings));
-      setSettings(defaultAppSettings);
+      const fallbackSettingsWithPasswords = {
+        ...defaultAppSettings,
+        users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' })),
+        currentUser: null,
+      };
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettingsWithPasswords));
+      setSettings(fallbackSettingsWithPasswords);
       setCurrentUser(null);
     }
     setIsLoading(false);
   }, []);
+
 
   const persistSettings = (updatedSettings: AppSettings) => {
     try {
@@ -117,15 +135,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const loginUser = async (usernameInput: string, passwordInput: string): Promise<AuthenticatedUser | null> => {
     setIsLoading(true);
     const userAccount = settings.users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase());
-    
+
     if (userAccount && ( (userAccount.password && userAccount.password === passwordInput) || passwordInput === 'password123') ) {
       const authenticatedUser: AuthenticatedUser = {
         id: userAccount.id,
         username: userAccount.username,
         role: userAccount.role,
       };
-      setCurrentUser(authenticatedUser); 
-      updateSettings({ currentUser: authenticatedUser }); 
+      setCurrentUser(authenticatedUser);
+      updateSettings({ currentUser: authenticatedUser });
       setIsLoading(false);
       return authenticatedUser;
     }
@@ -135,7 +153,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const logoutUser = () => {
     setCurrentUser(null);
-    updateSettings({ currentUser: null }); 
+    updateSettings({ currentUser: null });
   };
 
   // Check-in/Check-out Management
@@ -150,7 +168,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const checkInUser = () => {
     if (!currentUser) return;
     const existingLog = getTodaysTimeLogForCurrentUser();
-    if (existingLog) return; 
+    if (existingLog) return;
 
     const newTimeLog: TimeLog = {
       id: `timelog-${Date.now()}`,
@@ -166,7 +184,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const checkOutUser = () => {
     if (!currentUser) return;
     const activeLog = getTodaysTimeLogForCurrentUser();
-    if (!activeLog) return; 
+    if (!activeLog) return;
 
     const updatedTimeLogs = settings.timeLogs.map(log =>
       log.id === activeLog.id ? { ...log, checkOutTime: new Date().toISOString() } : log
@@ -193,10 +211,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   // User Management
   const addUser = (userData: Omit<UserAccount, 'id' | 'password'> & { password?: string }) => {
-    const newUser: UserAccount = { 
-        ...userData, 
+    const newUser: UserAccount = {
+        ...userData,
         id: `user-${Date.now()}`,
-        password: userData.password || 'password123' 
+        password: userData.password || 'password123'
     };
     updateSettings({ users: [...settings.users, newUser] });
   };
@@ -224,19 +242,19 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   // Table Management
   const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes'>) => {
-    const newTable: TableDefinition = { 
+    const newTable: TableDefinition = {
       name: tableData.name,
       capacity: tableData.capacity,
-      id: `table-${Date.now()}`, 
+      id: `table-${Date.now()}`,
       status: 'vacant',
-      currentOrderItems: undefined, 
+      currentOrderItems: undefined,
       notes: "",
     };
     updateSettings({ tables: [...settings.tables, newTable] });
   };
 
   const updateTable = (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => {
-    const updatedTables = settings.tables.map(t => 
+    const updatedTables = settings.tables.map(t =>
       t.id === tableId ? { ...t, ...updates } : t
     );
     updateSettings({ tables: updatedTables });
@@ -248,14 +266,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const assignMockOrderToTable = (tableId: string) => {
-    const updatedTables = settings.tables.map(t => 
+    const updatedTables = settings.tables.map(t =>
       t.id === tableId ? { ...t, currentOrderItems: MOCK_WAITER_ORDER_ITEMS } : t
     );
     updateSettings({ tables: updatedTables });
   };
 
   const clearMockOrderFromTable = (tableId: string) => {
-     const updatedTables = settings.tables.map(t => 
+     const updatedTables = settings.tables.map(t =>
       t.id === tableId ? { ...t, currentOrderItems: undefined } : t
     );
     updateSettings({ tables: updatedTables });
@@ -273,9 +291,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     );
     updateSettings({ waiters: updatedWaiters });
   };
-  
+
   const removeWaiter = (waiterId: string) => {
-    const unassignedTables = settings.tables.map(t => 
+    const unassignedTables = settings.tables.map(t =>
       t.waiterId === waiterId ? { ...t, waiterId: null } : t
     );
     const updatedWaiters = settings.waiters.filter(w => w.id !== waiterId);
@@ -283,8 +301,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <SettingsContext.Provider value={{ 
-        settings, 
+    <SettingsContext.Provider value={{
+        settings,
         updateSettings,
         loginUser,
         logoutUser,
@@ -292,8 +310,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         checkInUser,
         checkOutUser,
         getTodaysTimeLogForCurrentUser,
-        addPrinter, 
-        removePrinter, 
+        addPrinter,
+        removePrinter,
         setDefaultPrinter,
         addUser,
         updateUserRole,
@@ -306,7 +324,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         addWaiter,
         updateWaiter,
         removeWaiter,
-        isLoading 
+        isLoading
       }}>
       {children}
     </SettingsContext.Provider>
