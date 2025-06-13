@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { TableCardsGrid } from "@/components/floor-plan/TableCardsGrid" // Admin one can be reused for display
 import { WaiterTableCard } from "@/components/waiter-view/WaiterTableCard" // Waiter specific card
-import { ClipboardUser, Info, UserCheck } from "lucide-react"
+import { Clipboard, Info, UserCheck } from "lucide-react" // Corrected icon import
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function WaiterViewPage() {
@@ -21,7 +21,7 @@ export default function WaiterViewPage() {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3 mb-4">
-            <ClipboardUser className="h-8 w-8 text-primary" />
+            <Clipboard className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-headline font-bold text-primary">Waiter Live View</h1>
         </div>
         <Skeleton className="h-10 w-1/2 mb-6" />
@@ -34,7 +34,7 @@ export default function WaiterViewPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <div className="flex items-center space-x-3">
-            <ClipboardUser className="h-8 w-8 text-primary" />
+            <Clipboard className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-headline font-bold text-primary">Waiter Live View</h1>
         </div>
         {settings.waiters.length > 0 && (
