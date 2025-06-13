@@ -53,7 +53,7 @@ export function AppSidebar() {
         <SidebarMenu>
           {navItems.map((item) => (
             <SidebarMenuItem key={item.href}>
-              <Link href={item.href} legacyBehavior passHref>
+              <Link href={item.href}>
                 <SidebarMenuButton
                   asChild
                   isActive={pathname.startsWith(item.href)}
@@ -71,7 +71,7 @@ export function AppSidebar() {
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter className="p-4">
-        <Link href="/settings" legacyBehavior passHref>
+        <Link href="/settings">
             <SidebarMenuButton asChild tooltip="Settings" className="justify-start">
                  <a>
                     <Settings />
