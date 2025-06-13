@@ -1,3 +1,4 @@
+
 // src/app/(app)/settings/page.tsx
 "use client"
 
@@ -188,9 +189,9 @@ export default function SettingsPage() {
               <CardDescription>Update your restaurant's name, address, and contact information.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField control={restaurantForm.control} name="restaurantName" render={({ field }) => ( <FormItem> <FormLabel>Restaurant Name</FormLabel> <FormControl> <Input placeholder="Your Restaurant LLC" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-              <FormField control={restaurantForm.control} name="restaurantAddress" render={({ field }) => ( <FormItem> <FormLabel>Address</FormLabel> <FormControl> <Input placeholder="123 Main St, City" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-              <FormField control={restaurantForm.control} name="restaurantContact" render={({ field }) => ( <FormItem> <FormLabel>Contact Info (Phone/Email)</FormLabel> <FormControl> <Input placeholder="98XXXXXXX / info@example.com" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
+              <FormField control={restaurantForm.control} name="restaurantName" render={({ field }) => ( <FormItem> <FormLabel>Restaurant Name</FormLabel><FormControl><Input placeholder="Your Restaurant LLC" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+              <FormField control={restaurantForm.control} name="restaurantAddress" render={({ field }) => ( <FormItem> <FormLabel>Address</FormLabel><FormControl><Input placeholder="123 Main St, City" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+              <FormField control={restaurantForm.control} name="restaurantContact" render={({ field }) => ( <FormItem> <FormLabel>Contact Info (Phone/Email)</FormLabel><FormControl><Input placeholder="98XXXXXXX / info@example.com" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
               <Button type="submit" disabled={restaurantForm.formState.isSubmitting}> <Save className="mr-2 h-4 w-4" /> Save Restaurant Details </Button>
             </CardContent>
           </Card>
@@ -206,8 +207,8 @@ export default function SettingsPage() {
               <CardDescription>Configure VAT and service charge percentages (e.g., 0.13 for 13%).</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <FormField control={taxForm.control} name="vatRate" render={({ field }) => ( <FormItem> <FormLabel>VAT Rate</FormLabel> <FormControl> <Input type="number" step="0.01" placeholder="e.g., 0.13" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-              <FormField control={taxForm.control} name="serviceChargeRate" render={({ field }) => ( <FormItem> <FormLabel>Service Charge Rate</FormLabel> <FormControl> <Input type="number" step="0.01" placeholder="e.g., 0.10" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
+              <FormField control={taxForm.control} name="vatRate" render={({ field }) => ( <FormItem> <FormLabel>VAT Rate</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 0.13" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+              <FormField control={taxForm.control} name="serviceChargeRate" render={({ field }) => ( <FormItem> <FormLabel>Service Charge Rate</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 0.10" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
               <Button type="submit" disabled={taxForm.formState.isSubmitting}> <Save className="mr-2 h-4 w-4" /> Save Tax & Charges </Button>
             </CardContent>
           </Card>
@@ -231,8 +232,8 @@ export default function SettingsPage() {
               </DialogHeader>
               <Form {...printerForm}>
                 <form onSubmit={printerForm.handleSubmit(handleAddPrinterSubmit)} className="space-y-4">
-                  <FormField control={printerForm.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Printer Name</FormLabel> <FormControl> <Input placeholder="e.g., Main Receipt Printer" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                  <FormField control={printerForm.control} name="type" render={({ field }) => ( <FormItem> <FormLabel>Printer Type</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger> </FormControl> <SelectContent> <SelectItem value="Receipt">Receipt</SelectItem> <SelectItem value="Kitchen">Kitchen</SelectItem> <SelectItem value="Label">Label</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
+                  <FormField control={printerForm.control} name="name" render={({ field }) => ( <FormItem> <FormLabel>Printer Name</FormLabel><FormControl><Input placeholder="e.g., Main Receipt Printer" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                  <FormField control={printerForm.control} name="type" render={({ field }) => ( <FormItem> <FormLabel>Printer Type</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger></FormControl><SelectContent> <SelectItem value="Receipt">Receipt</SelectItem> <SelectItem value="Kitchen">Kitchen</SelectItem> <SelectItem value="Label">Label</SelectItem> </SelectContent> </Select><FormMessage /> </FormItem> )}/>
                   <DialogFooter>
                     <Button type="submit">Add Printer</Button>
                   </DialogFooter>
@@ -292,8 +293,8 @@ export default function SettingsPage() {
               </DialogHeader>
               <Form {...userForm}>
                 <form onSubmit={userForm.handleSubmit(handleAddUserSubmit)} className="space-y-4">
-                  <FormField control={userForm.control} name="username" render={({ field }) => ( <FormItem> <FormLabel>Username</FormLabel> <FormControl> <Input placeholder="e.g., john.doe" {...field} /> </FormControl> <FormMessage /> </FormItem> )}/>
-                  <FormField control={userForm.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Role</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}> <FormControl> <SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger> </FormControl> <SelectContent> <SelectItem value="Admin">Admin</SelectItem> <SelectItem value="Manager">Manager</SelectItem> <SelectItem value="Staff">Staff</SelectItem> </SelectContent> </Select> <FormMessage /> </FormItem> )}/>
+                  <FormField control={userForm.control} name="username" render={({ field }) => ( <FormItem> <FormLabel>Username</FormLabel><FormControl><Input placeholder="e.g., john.doe" {...field} /></FormControl><FormMessage /> </FormItem> )}/>
+                  <FormField control={userForm.control} name="role" render={({ field }) => ( <FormItem> <FormLabel>Role</FormLabel> <Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent> <SelectItem value="Admin">Admin</SelectItem> <SelectItem value="Manager">Manager</SelectItem> <SelectItem value="Staff">Staff</SelectItem> </SelectContent> </Select><FormMessage /> </FormItem> )}/>
                   <DialogFooter>
                     <Button type="submit">Add User</Button>
                   </DialogFooter>
@@ -347,9 +348,7 @@ export default function SettingsPage() {
                     <FormItem>
                       <FormLabel>New Role</FormLabel>
                       <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger><SelectValue placeholder="Select new role" /></SelectTrigger>
-                        </FormControl>
+                        <FormControl><SelectTrigger><SelectValue placeholder="Select new role" /></SelectTrigger></FormControl>
                         <SelectContent>
                           <SelectItem value="Admin">Admin</SelectItem>
                           <SelectItem value="Manager">Manager</SelectItem>
