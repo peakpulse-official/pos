@@ -1,3 +1,4 @@
+
 // src/app/(app)/waiter-view/page.tsx
 "use client"
 

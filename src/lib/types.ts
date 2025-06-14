@@ -53,7 +53,7 @@ export interface DailySales {
   date: string; // ISO string for date
   totalRevenue: number;
   totalOrders: number;
-  popularItems: { itemId: string, name: string, quantitySold: number }[];
+  popularItems: { itemId: string, name: string, quantitySold: number, revenue: number }[];
 }
 
 export type PrinterType = "Receipt" | "Kitchen" | "Label";

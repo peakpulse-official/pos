@@ -1,3 +1,4 @@
+
 // src/components/floor-plan/TableCard.tsx
 "use client";
 

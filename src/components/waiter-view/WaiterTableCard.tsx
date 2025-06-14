@@ -1,3 +1,4 @@
+
 // src/components/waiter-view/WaiterTableCard.tsx
 "use client";
 
