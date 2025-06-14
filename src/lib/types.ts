@@ -33,6 +33,7 @@ export interface Order {
   vatRate: number; // VAT rate at time of order
   serviceCharge: number; // Service charge amount
   serviceChargeRate: number; // Service charge rate at time of order
+  deliveryCharge?: number; // Optional delivery charge
   status: 'pending' | 'completed' | 'paid' | 'cancelled';
   createdAt: string; // ISO string for date
   orderNumber: string;
@@ -68,14 +69,14 @@ export interface UserAccount {
   username: string; 
   password?: string; 
   role: UserRole;
-  hourlyRate?: number; // Added for hourly salary
+  hourlyRate?: number; 
 }
 
 export interface AuthenticatedUser {
   id: string;
   username: string;
   role: UserRole;
-  hourlyRate?: number; // Added for hourly salary
+  hourlyRate?: number; 
 }
 
 export interface TimeLog {
@@ -89,7 +90,7 @@ export interface TimeLog {
   breakStartTime?: string; // ISO string
   breakEndTime?: string; // ISO string
   totalBreakDurationMinutes?: number; 
-  hourlyRate?: number; // Snapshot of rate at time of check-in
+  hourlyRate?: number; 
 }
 
 export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
@@ -130,3 +131,4 @@ export const MOCK_WAITER_ORDER_ITEMS: OrderItem[] = [
   { id: 'item5', name: 'Chicken Mo:Mo (Steamed)', price: 250, category: 'cat2', quantity: 2, description: 'Nepali steamed chicken dumplings.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'momo dumplings' },
   { id: 'item3', name: 'Nepali Tea (Chiya)', price: 80, category: 'cat1', quantity: 1, description: 'Traditional Nepali milk tea.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'tea cup' },
 ];
+

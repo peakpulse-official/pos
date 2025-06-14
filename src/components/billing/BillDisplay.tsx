@@ -1,3 +1,4 @@
+
 // src/components/billing/BillDisplay.tsx
 "use client"
 
@@ -6,7 +7,7 @@ import { useSettings } from "@/contexts/SettingsContext"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Printer, ChefHat, ShoppingBag, Truck } from "lucide-react"
+import { Printer, ChefHat, ShoppingBag, Truck, DollarSign } from "lucide-react"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 
@@ -25,11 +26,13 @@ export const generateAdHocBillStructure = (
   orderType?: OrderType,
   customerPhone?: string,
   deliveryAddress?: string,
+  deliveryCharge?: number,
 ): Omit<Bill, 'id' | 'createdAt' | 'status'> => {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const vatAmount = subtotal * settings.vatRate;
   const serviceChargeAmount = subtotal * settings.serviceChargeRate;
-  const total = subtotal + vatAmount + serviceChargeAmount;
+  const actualDeliveryCharge = deliveryCharge || 0;
+  const total = subtotal + vatAmount + serviceChargeAmount + actualDeliveryCharge;
 
   return {
     orderNumber: orderNumber || `ORDER-${Date.now().toString().slice(-5)}`,
@@ -40,6 +43,7 @@ export const generateAdHocBillStructure = (
     vatRate: settings.vatRate,
     serviceCharge: serviceChargeAmount,
     serviceChargeRate: settings.serviceChargeRate,
+    deliveryCharge: actualDeliveryCharge > 0 ? actualDeliveryCharge : undefined,
     total,
     printedAt: new Date().toISOString(),
     customerName: customerName,
@@ -155,6 +159,12 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
                 <span className="text-muted-foreground">Svc Chg ({(displayData.serviceChargeRate * 100).toFixed(0)}%):</span>
                 <span>{displayData.serviceCharge.toFixed(2)}</span>
               </div>
+              {displayData.deliveryCharge && displayData.deliveryCharge > 0 && (
+                 <div className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery Charge:</span>
+                    <span>{displayData.deliveryCharge.toFixed(2)}</span>
+                </div>
+              )}
               <Separator className="my-1" />
               <div className="flex justify-between text-sm font-bold text-primary">
                 <span>Total:</span>
@@ -214,3 +224,4 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
     </Card>
   )
 }
+

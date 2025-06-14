@@ -1,3 +1,4 @@
+
 // src/components/order/CurrentOrderPanel.tsx
 "use client"
 
@@ -7,12 +8,13 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { MinusCircle, PlusCircle, Trash2, ShoppingCart, CheckCircle, User, Phone, Home, ShoppingBag, Truck } from "lucide-react"
+import { MinusCircle, PlusCircle, Trash2, ShoppingCart, CheckCircle, User, Phone, Home, ShoppingBag, Truck, Edit, DollarSign } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import React from "react";
 
 interface CurrentOrderPanelProps {
   orderItems: OrderItem[]
@@ -20,8 +22,7 @@ interface CurrentOrderPanelProps {
   onRemoveItem: (itemId: string) => void
   onPlaceOrder: () => void
   onClearOrder: () => void
-  // New props for customer details
-  orderType: OrderType
+  orderType: OrderType | '' // Allow empty initial state
   setOrderType: (type: OrderType) => void
   customerName: string
   setCustomerName: (name: string) => void
@@ -29,6 +30,10 @@ interface CurrentOrderPanelProps {
   setCustomerPhone: (phone: string) => void
   deliveryAddress: string
   setDeliveryAddress: (address: string) => void
+  deliveryCharge: string 
+  setDeliveryCharge: (charge: string) => void
+  isOrderInfoComplete: boolean
+  onEditOrderDetails: () => void
 }
 
 export function CurrentOrderPanel({
@@ -45,6 +50,10 @@ export function CurrentOrderPanel({
   setCustomerPhone,
   deliveryAddress,
   setDeliveryAddress,
+  deliveryCharge,
+  setDeliveryCharge,
+  isOrderInfoComplete,
+  onEditOrderDetails,
 }: CurrentOrderPanelProps) {
   const { settings, isLoading: settingsLoading } = useSettings();
 
@@ -52,34 +61,78 @@ export function CurrentOrderPanel({
   
   const vatRate = settingsLoading ? 0.13 : settings.vatRate;
   const serviceChargeRate = settingsLoading ? 0.10 : settings.serviceChargeRate;
+  const deliveryChargeAmount = parseFloat(deliveryCharge) || 0;
 
   const vatAmount = subtotal * vatRate
   const serviceChargeAmount = subtotal * serviceChargeRate
-  const total = subtotal + vatAmount + serviceChargeAmount
+  const total = subtotal + vatAmount + serviceChargeAmount + deliveryChargeAmount;
 
   return (
     <Card className="sticky top-16 h-[calc(100vh-8rem)] flex flex-col shadow-xl">
       <CardHeader className="border-b">
-        <CardTitle className="font-headline text-xl flex items-center">
-          <ShoppingCart className="mr-2 h-6 w-6 text-primary" /> Current Order
-        </CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="font-headline text-xl flex items-center">
+            <ShoppingCart className="mr-2 h-6 w-6 text-primary" /> Current Order
+          </CardTitle>
+          {isOrderInfoComplete && orderItems.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={onEditOrderDetails} className="text-xs">
+              <Edit className="mr-1 h-3 w-3" /> Edit Details
+            </Button>
+          )}
+        </div>
       </CardHeader>
       
       <ScrollArea className="flex-grow">
-        <CardContent className="p-4 space-y-3">
-          {orderItems.length === 0 ? (
-            <p className="text-muted-foreground text-center py-6">Order is empty.</p>
-          ) : (
-            <ul className="space-y-3 max-h-48 overflow-y-auto"> {/* Limit height for item list */}
+        {!isOrderInfoComplete ? (
+          <CardContent className="p-4">
+            <div className="text-center py-6 text-muted-foreground">
+              <p className="font-semibold mb-2">Complete Order Details</p>
+              <p className="text-sm">Please select an order type and fill in customer information to start adding items.</p>
+            </div>
+            <div className="space-y-3">
+              <div>
+                  <Label className="text-sm font-medium mb-1.5 block">Order Type*</Label>
+                  <RadioGroup value={orderType} onValueChange={(value) => setOrderType(value as OrderType)} className="flex space-x-3">
+                      <div className="flex items-center space-x-2"> <RadioGroupItem value="takeout" id="takeout" /> <Label htmlFor="takeout" className="flex items-center text-sm"><ShoppingBag className="mr-1.5 h-4 w-4"/>Take-Out</Label> </div>
+                      <div className="flex items-center space-x-2"> <RadioGroupItem value="delivery" id="delivery" /> <Label htmlFor="delivery" className="flex items-center text-sm"><Truck className="mr-1.5 h-4 w-4"/>Delivery</Label> </div>
+                  </RadioGroup>
+              </div>
+              
+              {orderType && (
+                <>
+                  <div className="space-y-1">
+                    <Label htmlFor="customerName" className="text-xs">Customer Name*</Label>
+                    <div className="relative"> <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input id="customerName" placeholder="Full Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="pl-8 text-sm h-9" /> </div>
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="customerPhone" className="text-xs">Phone (Optional)</Label>
+                    <div className="relative"> <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input id="customerPhone" placeholder="Contact Number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="pl-8 text-sm h-9" /> </div>
+                  </div>
+                  {orderType === 'delivery' && (
+                    <>
+                      <div className="space-y-1">
+                        <Label htmlFor="deliveryAddress" className="text-xs">Delivery Address*</Label>
+                        <div className="relative"> <Home className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input id="deliveryAddress" placeholder="Full Address for Delivery" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="pl-8 text-sm h-9" /> </div>
+                      </div>
+                       <div className="space-y-1">
+                        <Label htmlFor="deliveryCharge" className="text-xs">Delivery Charge (NPR, Optional)</Label>
+                        <div className="relative"> <DollarSign className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /> <Input id="deliveryCharge" type="number" placeholder="e.g., 50" value={deliveryCharge} onChange={(e) => setDeliveryCharge(e.target.value)} className="pl-8 text-sm h-9" /> </div>
+                      </div>
+                    </>
+                  )}
+                </>
+              )}
+            </div>
+          </CardContent>
+        ) : orderItems.length === 0 ? (
+            <p className="text-muted-foreground text-center py-6">Order is empty. Add items from the menu.</p>
+        ) : (
+          <CardContent className="p-4">
+            <ul className="space-y-3 max-h-48 overflow-y-auto">
               {orderItems.map((item) => (
                 <li key={item.id} className="flex items-center space-x-3 p-2 rounded-md bg-card hover:bg-muted/50 transition-colors">
-                  {item.imageUrl && (
-                    <Image src={item.imageUrl} alt={item.name} width={40} height={40} className="rounded-sm object-cover" data-ai-hint={item.dataAiHint} />
-                  )}
-                  <div className="flex-grow">
-                    <p className="font-medium text-sm">{item.name}</p>
-                    <p className="text-xs text-muted-foreground">NPR {item.price.toFixed(2)}</p>
-                  </div>
+                  {item.imageUrl && ( <Image src={item.imageUrl} alt={item.name} width={40} height={40} className="rounded-sm object-cover" data-ai-hint={item.dataAiHint} /> )}
+                  <div className="flex-grow"> <p className="font-medium text-sm">{item.name}</p> <p className="text-xs text-muted-foreground">NPR {item.price.toFixed(2)}</p> </div>
                   <div className="flex items-center space-x-1.5">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1} > <MinusCircle className="h-4 w-4" /> </Button>
                     <span className="text-sm w-5 text-center">{item.quantity}</span>
@@ -89,57 +142,15 @@ export function CurrentOrderPanel({
                 </li>
               ))}
             </ul>
-          )}
-        </CardContent>
-
-        {orderItems.length > 0 && (
-          <div className="px-4 py-3 border-t space-y-3">
-             <div>
-                <Label className="text-sm font-medium mb-2 block">Order Type</Label>
-                <RadioGroup defaultValue="takeout" value={orderType} onValueChange={(value) => setOrderType(value as OrderType)} className="flex space-x-4">
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="takeout" id="takeout" />
-                        <Label htmlFor="takeout" className="flex items-center"><ShoppingBag className="mr-1.5 h-4 w-4"/>Take-Out</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                        <RadioGroupItem value="delivery" id="delivery" />
-                        <Label htmlFor="delivery" className="flex items-center"><Truck className="mr-1.5 h-4 w-4"/>Delivery</Label>
-                    </div>
-                </RadioGroup>
-            </div>
-            
-            <div className="space-y-1">
-              <Label htmlFor="customerName" className="text-xs">Customer Name*</Label>
-              <div className="relative">
-                <User className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="customerName" placeholder="Full Name" value={customerName} onChange={(e) => setCustomerName(e.target.value)} className="pl-8 text-sm h-9" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <Label htmlFor="customerPhone" className="text-xs">Phone (Optional)</Label>
-               <div className="relative">
-                <Phone className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input id="customerPhone" placeholder="Contact Number" value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} className="pl-8 text-sm h-9" />
-              </div>
-            </div>
-            {orderType === 'delivery' && (
-              <div className="space-y-1">
-                <Label htmlFor="deliveryAddress" className="text-xs">Delivery Address*</Label>
-                <div className="relative">
-                    <Home className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input id="deliveryAddress" placeholder="Full Address for Delivery" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} className="pl-8 text-sm h-9" />
-                </div>
-              </div>
-            )}
-          </div>
+          </CardContent>
         )}
       </ScrollArea>
       
-      {orderItems.length > 0 && (
+      {(isOrderInfoComplete && orderItems.length > 0) && (
         <CardFooter className="flex flex-col p-4 border-t">
          {settingsLoading ? (
             <div className="w-full space-y-2 mb-3">
-              <Skeleton className="h-4 w-3/4" /> <Skeleton className="h-4 w-1/2" /> <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-4 w-3/4" /> <Skeleton className="h-4 w-1/2" /> <Skeleton className="h-4 w-2/3" /> <Skeleton className="h-4 w-1/3" />
               <Separator className="my-1" />
               <Skeleton className="h-6 w-full" />
             </div>
@@ -148,12 +159,13 @@ export function CurrentOrderPanel({
               <div className="flex justify-between"> <span>Subtotal:</span> <span>NPR {subtotal.toFixed(2)}</span> </div>
               <div className="flex justify-between"> <span>VAT ({ (vatRate * 100).toFixed(0) }%):</span> <span>NPR {vatAmount.toFixed(2)}</span> </div>
               <div className="flex justify-between"> <span>Service Charge ({ (serviceChargeRate * 100).toFixed(0) }%):</span> <span>NPR {serviceChargeAmount.toFixed(2)}</span> </div>
+              {deliveryChargeAmount > 0 && ( <div className="flex justify-between"> <span>Delivery Charge:</span> <span>NPR {deliveryChargeAmount.toFixed(2)}</span> </div> )}
               <Separator className="my-1" />
               <div className="flex justify-between font-bold text-base text-primary"> <span>Total:</span> <span>NPR {total.toFixed(2)}</span> </div>
             </div>
           )}
           <div className="w-full space-y-2">
-            <Button onClick={onPlaceOrder} className="w-full text-base py-3" size="lg" disabled={settingsLoading || orderItems.length === 0}> <CheckCircle className="mr-2 h-5 w-5" /> Place Order </Button>
+            <Button onClick={onPlaceOrder} className="w-full text-base py-3" size="lg" disabled={settingsLoading || orderItems.length === 0 || !isOrderInfoComplete}> <CheckCircle className="mr-2 h-5 w-5" /> Place Order </Button>
             <Button onClick={onClearOrder} variant="outline" className="w-full" disabled={settingsLoading || orderItems.length === 0}> Clear Order </Button>
           </div>
         </CardFooter>
@@ -161,3 +173,4 @@ export function CurrentOrderPanel({
     </Card>
   )
 }
+
