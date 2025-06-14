@@ -3,17 +3,20 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { categories, menuItems as defaultMenuItems } from "@/lib/data"
-import type { MenuItem as MenuItemType, OrderItem, MenuCategory, Order } from "@/lib/types"
+import type { MenuItem as MenuItemType, OrderItem, MenuCategory, Order, OrderType } from "@/lib/types"
 import { MenuItemCard } from "@/components/order/MenuItemCard"
 import { CurrentOrderPanel } from "@/components/order/CurrentOrderPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search } from "lucide-react"
-import { useSettings } from "@/contexts/SettingsContext" // Import useSettings
+import { Search, PackageOpen, Truck, ShoppingBag as ShoppingBagIcon } from "lucide-react"
+import { useSettings } from "@/contexts/SettingsContext" 
 import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
@@ -24,8 +27,15 @@ export default function OrderPage() {
   const [isLoadingMenuItems, setIsLoadingMenuItems] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<string>(categories[0]?.id || "all")
+  
+  // New state for takeout/delivery
+  const [orderType, setOrderType] = useState<OrderType>('takeout');
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [deliveryAddress, setDeliveryAddress] = useState('');
+
   const { toast } = useToast()
-  const { settings, isLoading: settingsLoading } = useSettings(); // Get settings
+  const { settings, isLoading: settingsLoading } = useSettings(); 
 
   useEffect(() => {
     try {
@@ -95,6 +105,15 @@ export default function OrderPage() {
       });
       return;
     }
+     if (!customerName.trim()) {
+      toast({ title: "Customer Name Required", description: "Please enter the customer's name.", variant: "destructive"});
+      return;
+    }
+    if (orderType === 'delivery' && !deliveryAddress.trim()) {
+      toast({ title: "Delivery Address Required", description: "Please enter the delivery address.", variant: "destructive"});
+      return;
+    }
+
 
     const subtotal = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
     const vatAmount = subtotal * settings.vatRate;
@@ -111,15 +130,18 @@ export default function OrderPage() {
       serviceCharge: serviceChargeAmount,
       serviceChargeRate: settings.serviceChargeRate,
       total,
-      status: 'paid', // Default to paid for simplicity in this flow
+      status: 'paid', 
       createdAt: new Date().toISOString(),
-      // customerName and paymentMethod can be added via a modal or further UI enhancements
+      orderType: orderType,
+      customerName: customerName.trim(),
+      customerPhone: customerPhone.trim() || undefined,
+      deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
     };
 
     try {
       const existingOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
       const existingOrders: Order[] = existingOrdersRaw ? JSON.parse(existingOrdersRaw) : [];
-      const updatedOrders = [newOrder, ...existingOrders]; // Add new order to the beginning
+      const updatedOrders = [newOrder, ...existingOrders]; 
       localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
       
       toast({
@@ -127,7 +149,11 @@ export default function OrderPage() {
         description: `Total: NPR ${total.toFixed(2)}. Order #${newOrder.orderNumber}`,
         variant: "default",
       })
-      setCurrentOrder([]) // Clear order after placing
+      setCurrentOrder([]) 
+      setCustomerName('');
+      setCustomerPhone('');
+      setDeliveryAddress('');
+      setOrderType('takeout'); // Reset to default
     } catch (error) {
       console.error("Failed to save order to localStorage", error);
       toast({
@@ -140,9 +166,12 @@ export default function OrderPage() {
 
   const handleClearOrder = () => {
     setCurrentOrder([])
+    setCustomerName('');
+    setCustomerPhone('');
+    setDeliveryAddress('');
     toast({
       title: "Order Cleared",
-      description: "All items removed from the current order.",
+      description: "All items and customer details removed from the current order.",
       variant: "default",
     })
   }
@@ -198,6 +227,10 @@ export default function OrderPage() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 h-full">
       <div className="lg:col-span-2 flex flex-col">
+        <div className="mb-4">
+            <h1 className="text-2xl font-headline font-bold text-primary mb-1">Take-Out & Delivery Orders</h1>
+            <p className="text-muted-foreground text-sm">Select items and specify order details below.</p>
+        </div>
         <div className="mb-4 sticky top-0 bg-background/80 backdrop-blur-sm py-3 z-10">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
@@ -233,7 +266,7 @@ export default function OrderPage() {
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-10">
-              <Search className="h-16 w-16 mb-4" />
+              <PackageOpen className="h-16 w-16 mb-4" />
               <p className="text-xl font-semibold">No items match your search.</p>
               <p>Try a different search term or category.</p>
             </div>
@@ -248,6 +281,15 @@ export default function OrderPage() {
           onRemoveItem={handleRemoveItem}
           onPlaceOrder={handlePlaceOrder}
           onClearOrder={handleClearOrder}
+          // Pass new state and setters for customer details
+          orderType={orderType}
+          setOrderType={setOrderType}
+          customerName={customerName}
+          setCustomerName={setCustomerName}
+          customerPhone={customerPhone}
+          setCustomerPhone={setCustomerPhone}
+          deliveryAddress={deliveryAddress}
+          setDeliveryAddress={setDeliveryAddress}
         />
       </div>
     </div>

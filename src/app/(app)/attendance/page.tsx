@@ -5,16 +5,20 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CalendarCheck, UserCircle, Users, BarChartBig, Landmark } from "lucide-react";
+import { CalendarCheck, UserCircle, Users, BarChartBig, Landmark, Coffee } from "lucide-react";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import type { TimeLog } from "@/lib/types";
 import { useMemo } from "react";
 
-// Helper function to get duration in minutes for a single log
-const getDurationInMinutes = (log: TimeLog): number => {
+// Helper function to get effective duration in minutes for a single log (deducts break)
+const getEffectiveDurationInMinutes = (log: TimeLog): number => {
   if (!log.checkOutTime) return 0; // Only count completed logs
-  return differenceInMinutes(parseISO(log.checkOutTime), parseISO(log.checkInTime));
+  let duration = differenceInMinutes(parseISO(log.checkOutTime), parseISO(log.checkInTime));
+  if (log.totalBreakDurationMinutes && log.totalBreakDurationMinutes > 0) {
+    duration -= log.totalBreakDurationMinutes;
+  }
+  return Math.max(0, duration); // Ensure duration is not negative
 };
 
 // Helper function to format total minutes into "Xh Ym"
@@ -23,6 +27,11 @@ const formatTotalDurationFromMinutes = (totalMinutes: number): string => {
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;
   return `${hours}h ${minutes}m`;
+};
+
+const formatBreakDurationDisplay = (log: TimeLog): string => {
+    if (!log.totalBreakDurationMinutes || log.totalBreakDurationMinutes <= 0) return "-";
+    return formatTotalDurationFromMinutes(log.totalBreakDurationMinutes);
 };
 
 
@@ -47,23 +56,24 @@ export default function AttendancePage() {
 
   const userTotals = useMemo(() => {
     if (!isAdminOrManager) return null;
-    const totals: Record<string, { username: string, role: string, totalMinutes: number }> = {};
+    const totals: Record<string, { username: string, role: string, totalMinutes: number, totalBreakMinutes: number }> = {};
     completedLogs.forEach(log => {
       if (!totals[log.userId]) {
-        totals[log.userId] = { username: log.username, role: log.role, totalMinutes: 0 };
+        totals[log.userId] = { username: log.username, role: log.role, totalMinutes: 0, totalBreakMinutes: 0 };
       }
-      totals[log.userId].totalMinutes += getDurationInMinutes(log);
+      totals[log.userId].totalMinutes += getEffectiveDurationInMinutes(log);
+      totals[log.userId].totalBreakMinutes += (log.totalBreakDurationMinutes || 0);
     });
     return Object.values(totals).sort((a,b) => b.totalMinutes - a.totalMinutes);
   }, [isAdminOrManager, completedLogs]);
 
   const overallTotalMinutes = useMemo(() => {
     if (isAdminOrManager) {
-      return completedLogs.reduce((sum, log) => sum + getDurationInMinutes(log), 0);
+      return completedLogs.reduce((sum, log) => sum + getEffectiveDurationInMinutes(log), 0);
     } else if (currentUser) {
       return completedLogs
         .filter(log => log.userId === currentUser.id)
-        .reduce((sum, log) => sum + getDurationInMinutes(log), 0);
+        .reduce((sum, log) => sum + getEffectiveDurationInMinutes(log), 0);
     }
     return 0;
   }, [isAdminOrManager, completedLogs, currentUser]);
@@ -103,7 +113,7 @@ export default function AttendancePage() {
         <Card className="shadow-md min-w-[200px] bg-muted/30">
             <CardHeader className="pb-2 pt-3 px-4">
                 <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                    <Landmark className="mr-2 h-4 w-4" /> Total Recorded Hours
+                    <Landmark className="mr-2 h-4 w-4" /> Total Recorded Hours (Effective)
                 </CardTitle>
             </CardHeader>
             <CardContent className="pb-3 px-4">
@@ -119,7 +129,7 @@ export default function AttendancePage() {
                 <CardTitle className="font-headline text-xl flex items-center">
                     <Users className="mr-2 h-6 w-6 text-primary" /> User Hour Summaries
                 </CardTitle>
-                <CardDescription>Total completed hours per user.</CardDescription>
+                <CardDescription>Total effective work hours and break times per user.</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-[150px] md:h-[200px]">
@@ -128,7 +138,8 @@ export default function AttendancePage() {
                             <TableRow>
                                 <TableHead>Username</TableHead>
                                 <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Total Hours</TableHead>
+                                <TableHead className="text-right">Total Work Hours</TableHead>
+                                <TableHead className="text-right">Total Break Time</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -137,6 +148,7 @@ export default function AttendancePage() {
                                     <TableCell className="font-medium">{userTotal.username}</TableCell>
                                     <TableCell>{userTotal.role}</TableCell>
                                     <TableCell className="text-right font-semibold">{formatTotalDurationFromMinutes(userTotal.totalMinutes)}</TableCell>
+                                    <TableCell className="text-right">{formatTotalDurationFromMinutes(userTotal.totalBreakMinutes)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -152,7 +164,7 @@ export default function AttendancePage() {
              <BarChartBig className="mr-2 h-6 w-6 text-primary" /> Detailed Log
           </CardTitle>
           <CardDescription>
-            Most recent logs are shown first. Only completed shifts contribute to total hours.
+            Most recent logs are shown first. Only completed shifts contribute to total hours. Durations are effective work time.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -171,8 +183,9 @@ export default function AttendancePage() {
                       {isAdminOrManager && <TableHead>Username</TableHead>}
                       {isAdminOrManager && <TableHead>Role</TableHead>}
                       <TableHead>Date</TableHead>
-                      <TableHead>Check-in Time</TableHead>
-                      <TableHead>Check-out Time</TableHead>
+                      <TableHead>Check-in</TableHead>
+                      <TableHead>Check-out</TableHead>
+                      <TableHead>Break Taken</TableHead>
                       <TableHead>Duration</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -188,12 +201,15 @@ export default function AttendancePage() {
                           {log.checkOutTime ? format(parseISO(log.checkOutTime), "h:mm:ss a") : <span className="text-muted-foreground italic">Not checked out</span>}
                         </TableCell>
                         <TableCell className="font-medium">
-                            {log.checkOutTime ? formatTotalDurationFromMinutes(getDurationInMinutes(log)) : <span className="text-muted-foreground italic">-</span>}
+                            {formatBreakDurationDisplay(log)}
+                        </TableCell>
+                        <TableCell className="font-semibold">
+                            {log.checkOutTime ? formatTotalDurationFromMinutes(getEffectiveDurationInMinutes(log)) : <span className="text-muted-foreground italic">-</span>}
                         </TableCell>
                         <TableCell>
                           {log.checkOutTime ? 
                             <Badge variant="outline">Completed</Badge> : 
-                            <Badge variant="default">Checked In</Badge>
+                            (log.breakStartTime && !log.breakEndTime ? <Badge variant="secondary" className="bg-amber-100 text-amber-700 border-amber-300"><Coffee className="mr-1 h-3 w-3" />On Break</Badge> : <Badge variant="default">Checked In</Badge>)
                           }
                         </TableCell>
                       </TableRow>

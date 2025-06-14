@@ -2,11 +2,11 @@
 // src/contexts/SettingsContext.tsx
 "use client"
 
-import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, AuthenticatedUser, TimeLog, UserRole, OrderItem } from '@/lib/types';
+import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, AuthenticatedUser, TimeLog, UserRole, OrderItem, OrderType } from '@/lib/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { MOCK_WAITER_ORDER_ITEMS } from '@/lib/types';
 import { defaultAppSettings } from '@/lib/data';
-import { format } from 'date-fns';
+import { format, differenceInMinutes, parseISO } from 'date-fns';
 
 const LOCAL_STORAGE_KEY = 'annapurnaAppSettings';
 
@@ -17,9 +17,11 @@ interface SettingsContextType {
   loginUser: (usernameInput: string, passwordInput: string) => Promise<AuthenticatedUser | null>;
   logoutUser: () => void;
   currentUser: AuthenticatedUser | null;
-  // Check-in/out
+  // Check-in/out & Breaks
   checkInUser: () => void;
   checkOutUser: () => void;
+  startBreak: () => void;
+  endBreak: () => void;
   getTodaysTimeLogForCurrentUser: () => TimeLog | undefined;
   // Printers
   addPrinter: (printer: Omit<PrinterDevice, 'id'>) => void;
@@ -58,29 +60,33 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (storedSettings) {
         parsedSettings = JSON.parse(storedSettings);
       }
-
-      // Ensure users array exists and has default admin if necessary
+      
       let usersList: UserAccount[];
       if (parsedSettings.users && Array.isArray(parsedSettings.users) && parsedSettings.users.length > 0) {
         usersList = parsedSettings.users.map(u => ({ ...u, password: u.password || 'password123' }));
       } else {
-        // Fallback to default users if localStorage is empty or users array is missing/empty
         usersList = defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' }));
       }
       
-      // Ensure tables array exists
       const tablesList = (parsedSettings.tables || defaultAppSettings.tables || []).map((table: TableDefinition) => ({
         ...table,
         currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined)
       }));
 
+      const timeLogsList = (parsedSettings.timeLogs || defaultAppSettings.timeLogs || []).map((log: TimeLog) => ({
+        ...log,
+        // Ensure totalBreakDurationMinutes is a number, default to 0 if not present or invalid
+        totalBreakDurationMinutes: typeof log.totalBreakDurationMinutes === 'number' ? log.totalBreakDurationMinutes : 0,
+      }));
+
+
       const finalSettings: AppSettings = {
-        ...defaultAppSettings, // Base defaults
-        ...parsedSettings,     // Overlay with general stored settings
-        users: usersList,       // Specifically use the processed list of users
-        tables: tablesList,     // Specifically use the processed list of tables
-        currentUser: parsedSettings.currentUser || null, // Prioritize stored currentUser
-        timeLogs: parsedSettings.timeLogs || defaultAppSettings.timeLogs || [], // Ensure timeLogs exists
+        ...defaultAppSettings, 
+        ...parsedSettings,    
+        users: usersList,      
+        tables: tablesList,     
+        currentUser: parsedSettings.currentUser || null, 
+        timeLogs: timeLogsList,
       };
       
       setSettings(finalSettings);
@@ -92,7 +98,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         ...defaultAppSettings,
         users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' })),
         currentUser: null,
-        timeLogs: defaultAppSettings.timeLogs || [],
+        timeLogs: (defaultAppSettings.timeLogs || []).map(log => ({...log, totalBreakDurationMinutes: 0})),
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettingsWithPasswords));
       setSettings(fallbackSettingsWithPasswords);
@@ -128,14 +134,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(true);
     const userAccount = settings.users.find(u => u.username.toLowerCase() === usernameInput.toLowerCase());
 
-    if (userAccount && userAccount.password === passwordInput) { // Check against actual password
+    if (userAccount && userAccount.password === passwordInput) { 
       const authenticatedUser: AuthenticatedUser = {
         id: userAccount.id,
         username: userAccount.username,
         role: userAccount.role,
       };
       setCurrentUser(authenticatedUser);
-      updateSettings({ currentUser: authenticatedUser }); // Persist currentUser
+      updateSettings({ currentUser: authenticatedUser }); 
       setIsLoading(false);
       return authenticatedUser;
     }
@@ -148,19 +154,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     updateSettings({ currentUser: null });
   };
 
-  // Check-in/Check-out Management
+  // Check-in/Check-out & Break Management
   const getTodaysTimeLogForCurrentUser = (): TimeLog | undefined => {
     if (!currentUser) return undefined;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
+    // Find a log for today that is not checked out OR is checked out but had an active break
     return settings.timeLogs.find(
-      log => log.userId === currentUser.id && log.date === todayStr && !log.checkOutTime
+      log => log.userId === currentUser.id && log.date === todayStr && (!log.checkOutTime || (log.breakStartTime && !log.breakEndTime))
     );
   };
 
   const checkInUser = () => {
     if (!currentUser) return;
     const existingLog = getTodaysTimeLogForCurrentUser();
-    if (existingLog) return;
+    if (existingLog && !existingLog.checkOutTime) return; // Already checked in and not checked out
 
     const newTimeLog: TimeLog = {
       id: `timelog-${Date.now()}`,
@@ -169,6 +176,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       role: currentUser.role,
       checkInTime: new Date().toISOString(),
       date: format(new Date(), 'yyyy-MM-dd'),
+      totalBreakDurationMinutes: 0,
     };
     updateSettings({ timeLogs: [...settings.timeLogs, newTimeLog] });
   };
@@ -176,10 +184,54 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const checkOutUser = () => {
     if (!currentUser) return;
     const activeLog = getTodaysTimeLogForCurrentUser();
-    if (!activeLog) return;
+    if (!activeLog || activeLog.checkOutTime) return; // No active log or already checked out
+
+    // If on break, end break first
+    let finalLog = activeLog;
+    if (activeLog.breakStartTime && !activeLog.breakEndTime) {
+       const breakEndTime = new Date().toISOString();
+       const breakDuration = differenceInMinutes(parseISO(breakEndTime), parseISO(activeLog.breakStartTime));
+       finalLog = {
+           ...activeLog,
+           breakEndTime,
+           totalBreakDurationMinutes: (activeLog.totalBreakDurationMinutes || 0) + breakDuration
+       };
+    }
+    
+    const updatedTimeLogs = settings.timeLogs.map(log =>
+      log.id === finalLog.id ? { ...finalLog, checkOutTime: new Date().toISOString() } : log
+    );
+    updateSettings({ timeLogs: updatedTimeLogs });
+  };
+
+  const startBreak = () => {
+    if (!currentUser) return;
+    const activeLog = getTodaysTimeLogForCurrentUser();
+    // Can only start break if checked in, not checked out, and not already on break
+    if (!activeLog || activeLog.checkOutTime || activeLog.breakStartTime && !activeLog.breakEndTime) return;
 
     const updatedTimeLogs = settings.timeLogs.map(log =>
-      log.id === activeLog.id ? { ...log, checkOutTime: new Date().toISOString() } : log
+      log.id === activeLog.id ? { ...log, breakStartTime: new Date().toISOString(), breakEndTime: undefined } : log
+    );
+    updateSettings({ timeLogs: updatedTimeLogs });
+  };
+
+  const endBreak = () => {
+    if (!currentUser) return;
+    const activeLog = getTodaysTimeLogForCurrentUser();
+    // Can only end break if checked in, not checked out, and currently on break
+    if (!activeLog || activeLog.checkOutTime || !activeLog.breakStartTime || activeLog.breakEndTime) return;
+
+    const breakEndTime = new Date().toISOString();
+    const breakDuration = differenceInMinutes(parseISO(breakEndTime), parseISO(activeLog.breakStartTime as string));
+    
+    const updatedTimeLogs = settings.timeLogs.map(log =>
+      log.id === activeLog.id ? { 
+        ...log, 
+        breakEndTime: breakEndTime, 
+        totalBreakDurationMinutes: (log.totalBreakDurationMinutes || 0) + breakDuration,
+        // breakStartTime: undefined, // Clear breakStartTime after ending, if needed for logic reset for multiple breaks
+      } : log
     );
     updateSettings({ timeLogs: updatedTimeLogs });
   };
@@ -206,7 +258,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     const newUser: UserAccount = {
         ...userData,
         id: `user-${Date.now()}`,
-        password: userData.password && userData.password.length > 0 ? userData.password : 'password123' // Use provided or default
+        password: userData.password && userData.password.length > 0 ? userData.password : 'password123' 
     };
     updateSettings({ users: [...settings.users, newUser] });
   };
@@ -216,7 +268,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       if (u.id === userId) {
         const { password, ...otherUpdates } = updates;
         const updatedUser = { ...u, ...otherUpdates };
-        if (password && password.length > 0) { // Only update password if a new one is provided and not empty
+        if (password && password.length > 0) { 
           updatedUser.password = password;
         }
         return updatedUser;
@@ -244,7 +296,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         logoutUser(); 
     }
     const updatedUsers = settings.users.filter(u => u.id !== userId);
-    const updatedTimeLogs = settings.timeLogs.filter(log => log.userId !== userId); // Also remove their time logs
+    const updatedTimeLogs = settings.timeLogs.filter(log => log.userId !== userId); 
     updateSettings({ users: updatedUsers, timeLogs: updatedTimeLogs });
   };
 
@@ -317,6 +369,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         currentUser,
         checkInUser,
         checkOutUser,
+        startBreak,
+        endBreak,
         getTodaysTimeLogForCurrentUser,
         addPrinter,
         removePrinter,

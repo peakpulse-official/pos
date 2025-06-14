@@ -1,27 +1,30 @@
 // src/components/billing/BillDisplay.tsx
 "use client"
 
-import type { Bill, OrderItem } from "@/lib/types"
+import type { Bill, OrderItem, OrderType } from "@/lib/types"
 import { useSettings } from "@/contexts/SettingsContext"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Printer, ChefHat } from "lucide-react"
+import { Printer, ChefHat, ShoppingBag, Truck } from "lucide-react"
 import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface BillDisplayProps {
-  bill: Bill | null // Bill type implies an existing order record
+  bill: Bill | null 
   onPrint?: () => void
-  isKitchenCopy?: boolean // New prop
-  title?: string // e.g., "KOT" or "TAX INVOICE"
+  isKitchenCopy?: boolean 
+  title?: string 
 }
 
-// Function to generate a bill-like structure from raw items, for waiter ad-hoc printing
 export const generateAdHocBillStructure = (
   items: OrderItem[], 
   settings: ReturnType<typeof useSettings>['settings'],
-  orderNumber?: string
+  orderNumber?: string,
+  customerName?: string,
+  orderType?: OrderType,
+  customerPhone?: string,
+  deliveryAddress?: string,
 ): Omit<Bill, 'id' | 'createdAt' | 'status'> => {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const vatAmount = subtotal * settings.vatRate;
@@ -39,9 +42,10 @@ export const generateAdHocBillStructure = (
     serviceChargeRate: settings.serviceChargeRate,
     total,
     printedAt: new Date().toISOString(),
-    // These would typically come from a full Order object for a persisted bill
-    // customerName: undefined, 
-    // paymentMethod: undefined,
+    customerName: customerName,
+    orderType: orderType || 'dine-in',
+    customerPhone: customerPhone,
+    deliveryAddress: deliveryAddress,
   };
 };
 
@@ -49,7 +53,7 @@ export const generateAdHocBillStructure = (
 export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: BillDisplayProps) {
   const { settings, isLoading: settingsLoading } = useSettings();
 
-  if (!bill && !isKitchenCopy) { // Allow kitchen copy even if bill object is null if items are provided (future enhancement)
+  if (!bill && !isKitchenCopy) { 
     return (
       <Card className="flex flex-col items-center justify-center min-h-[400px] text-center shadow-lg md:max-w-md mx-auto">
         <CardHeader>
@@ -62,9 +66,9 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
     )
   }
   
-  const displayData = bill; // Use bill if provided
+  const displayData = bill; 
 
-  if (!displayData) { // Should ideally not happen if checks are right, but as fallback for kitchen
+  if (!displayData) { 
      return <p>Error: Bill data is missing.</p>;
   }
 
@@ -82,6 +86,7 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
   const restaurantContact = settingsLoading ? <Skeleton className="h-3 w-1/2" /> : settings.restaurantContact;
 
   const billTitle = title ? title : (isKitchenCopy ? "KITCHEN ORDER TICKET (KOT)" : "TAX INVOICE");
+  const orderTypeDisplay = displayData.orderType === 'takeout' ? 'Take-Out' : displayData.orderType === 'delivery' ? 'Delivery' : 'Dine-In';
 
   return (
     <Card className="shadow-xl print-area max-w-xs mx-auto">
@@ -100,11 +105,17 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
                 <p className="text-xs text-muted-foreground">Bill: {displayData.billNumber}</p>
             </div>
         </div>
-        <div className="text-xs text-muted-foreground flex justify-between">
+        <div className="text-xs text-muted-foreground flex justify-between items-center">
             <p>Order: {displayData.orderNumber}</p>
-            <p>Date: {format(new Date(displayData.printedAt), "dd/MM/yy HH:mm")}</p>
+            <div className="flex items-center">
+                {displayData.orderType === 'takeout' && <ShoppingBag className="h-3 w-3 mr-1"/>}
+                {displayData.orderType === 'delivery' && <Truck className="h-3 w-3 mr-1"/>}
+                <span>{orderTypeDisplay}</span>
+            </div>
         </div>
-        {!isKitchenCopy && displayData.customerName && <p className="text-xs mt-1">Cust: {displayData.customerName}</p>}
+        <p className="text-xs text-muted-foreground">Date: {format(new Date(displayData.printedAt), "dd/MM/yy HH:mm")}</p>
+        {displayData.customerName && <p className="text-xs mt-1">Cust: {displayData.customerName} {displayData.customerPhone && `(${displayData.customerPhone})`}</p>}
+        {displayData.orderType === 'delivery' && displayData.deliveryAddress && <p className="text-xs mt-0.5">Addr: {displayData.deliveryAddress}</p>}
       </CardHeader>
       <CardContent className="p-3">
         <div className="flow-root">

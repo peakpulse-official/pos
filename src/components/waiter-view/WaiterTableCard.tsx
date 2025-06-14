@@ -15,7 +15,7 @@ import { statusConfig } from "@/components/floor-plan/TableCard"; // Reuse statu
 import { Users, User, Clock, CheckCircle, Utensils, MessageSquare, Edit3, Send, Receipt, Handshake } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
 import { BillDisplay, generateAdHocBillStructure } from "@/components/billing/BillDisplay";
-import { MOCK_WAITER_ORDER_ITEMS } from "@/lib/types"; // Import mock items
+import { MOCK_WAITER_ORDER_ITEMS } from "@/lib/types"; 
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,7 +60,7 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
   const handleAssignToSelf = () => {
     if (currentWaiterId) {
       updateTable(table.id, { waiterId: currentWaiterId, status: 'occupied' });
-      assignMockOrderToTable(table.id); // Assign mock order items when table is occupied
+      assignMockOrderToTable(table.id); 
       toast({ title: `Table ${table.name} assigned to you and marked as occupied.` });
     } else {
       toast({ title: "Error", description: "No waiter selected.", variant: "destructive" });
@@ -70,17 +70,26 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
   const handleStatusChange = (newStatus: TableStatus) => {
     updateTable(table.id, { status: newStatus });
     if (newStatus === 'vacant' || newStatus === 'needs_cleaning') {
-      clearMockOrderFromTable(table.id); // Clear mock order if table becomes vacant/needs cleaning
+      clearMockOrderFromTable(table.id); 
       if (newStatus === 'vacant' && table.waiterId === currentWaiterId) {
-         updateTable(table.id, { waiterId: null }); // Unassign if current waiter makes it vacant
+         updateTable(table.id, { waiterId: null }); 
       }
+    } else if (newStatus === 'occupied' && !table.currentOrderItems) {
+      // If table becomes occupied and has no items (e.g. from admin panel), assign mock items
+      assignMockOrderToTable(table.id);
     }
     toast({ title: `Table ${table.name} status updated to ${statusConfig[newStatus].label}.` });
   };
   
   const prepareAndShowBill = (isKitchen: boolean) => {
-    const itemsToDisplay = table.currentOrderItems || MOCK_WAITER_ORDER_ITEMS; // Fallback to global mock if table has none
-    const adHocBill = generateAdHocBillStructure(itemsToDisplay, settings, table.name);
+    const itemsToDisplay = table.currentOrderItems || MOCK_WAITER_ORDER_ITEMS; 
+    const adHocBill = generateAdHocBillStructure(
+        itemsToDisplay, 
+        settings, 
+        table.name, // orderNumber (table name for KOT)
+        `Table ${table.name}`, // customerName
+        'dine-in' // orderType
+    );
     setBillDialogContent({ billData: adHocBill, isKitchen });
     setShowBillDialog(true);
     toast({ title: `${isKitchen ? "Kitchen Order" : "Bill"} ready for table ${table.name}` });
@@ -177,7 +186,7 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
                                 onValueChange={(value) => handleStatusChange(value as TableStatus)}
                             >
                                 {Object.entries(statusConfig).map(([statusKey, config]) => {
-                                    if (statusKey === 'occupied' && !isAssignedToCurrentUser && table.status !== 'vacant') return null; // Can't mark occupied by someone else
+                                    if (statusKey === 'occupied' && !isAssignedToCurrentUser && table.status !== 'vacant') return null; 
                                     return (
                                         <DropdownMenuRadioItem key={statusKey} value={statusKey}>
                                             <config.icon className={cn("mr-2 h-4 w-4", config.colorClass)} /> {config.label}
@@ -201,9 +210,8 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
       {showBillDialog && billDialogContent && (
         <Dialog open={showBillDialog} onOpenChange={setShowBillDialog}>
           <DialogContent className="max-w-xs p-0 border-0">
-            {/* BillDisplay will handle its own padding, etc. */}
             <BillDisplay 
-                bill={billDialogContent.billData as Bill} // Cast needed as BillDisplay expects full Bill
+                bill={billDialogContent.billData as Bill} 
                 isKitchenCopy={billDialogContent.isKitchen} 
                 title={billDialogContent.isKitchen ? `KOT - ${table.name}` : `Bill - ${table.name}`}
             />

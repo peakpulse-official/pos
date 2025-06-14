@@ -21,6 +21,8 @@ export interface OrderItem extends MenuItem {
   quantity: number;
 }
 
+export type OrderType = 'dine-in' | 'takeout' | 'delivery';
+
 export interface Order {
   id: string;
   items: OrderItem[];
@@ -35,6 +37,9 @@ export interface Order {
   orderNumber: string;
   customerName?: string;
   paymentMethod?: 'cash' | 'card' | 'online';
+  orderType: OrderType;
+  customerPhone?: string;
+  deliveryAddress?: string;
 }
 
 export interface Bill extends Order {
@@ -78,6 +83,9 @@ export interface TimeLog {
   checkInTime: string; // ISO string
   checkOutTime?: string; // ISO string
   date: string; // YYYY-MM-DD
+  breakStartTime?: string; // ISO string
+  breakEndTime?: string; // ISO string
+  totalBreakDurationMinutes?: number; // Calculated in minutes
 }
 
 export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
