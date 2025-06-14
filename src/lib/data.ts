@@ -1,3 +1,4 @@
+
 import type { MenuCategory, MenuItem, Order, DailySales, AppSettings } from './types';
 import { Coffee, Sandwich, Pizza, IceCream, Utensils, Zap } from 'lucide-react';
 
@@ -10,7 +11,6 @@ export const categories: MenuCategory[] = [
   { id: 'cat6', name: 'Quick Bites', icon: Zap },
 ];
 
-// Default menu items, used to seed localStorage if empty
 export const menuItems: MenuItem[] = [
   { id: 'item1', name: 'Espresso', price: 150, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'coffee cup', description: 'Strong black coffee.', recipe: '1. Grind coffee beans. 2. Tamp grounds. 3. Brew with espresso machine for 25-30 seconds. 4. Serve immediately.' },
   { id: 'item2', name: 'Latte', price: 200, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'latte art', description: 'Espresso with steamed milk.' },
@@ -36,7 +36,6 @@ export const menuItems: MenuItem[] = [
   { id: 'item22', name: 'Chicken Burger', price: 350, category: 'cat6', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'chicken burger', description: 'Juicy chicken patty in a bun.'},
 ];
 
-// Initial orders, can be used to seed localStorage if needed, but Billing page now primarily uses localStorage.
 export const initialOrders: Order[] = [
   { 
     id: 'order1', 
@@ -55,6 +54,7 @@ export const initialOrders: Order[] = [
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
     customerName: 'Hari Sharma',
     paymentMethod: 'cash',
+    orderType: 'dine-in',
   },
   { 
     id: 'order2', 
@@ -73,10 +73,10 @@ export const initialOrders: Order[] = [
     status: 'completed', 
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), 
     customerName: 'Sita Rai',
+    orderType: 'takeout',
   }
 ];
 
-// Mock daily sales for the reports page. Some parts of reports page will be updated to use live data.
 export const mockDailySales: DailySales = {
   date: new Date().toISOString().split('T')[0],
   totalRevenue: initialOrders.reduce((sum, order) => sum + (order.status === 'paid' ? order.total : 0), 0),
@@ -99,8 +99,8 @@ export const defaultAppSettings: AppSettings = {
   serviceChargeRate: 0.10,
   printers: [],
   defaultPrinterId: null,
-  users: [ // Add a default admin user for easier initial testing
-    { id: 'admin-default', username: 'admin@example.com', password: 'password123', role: 'Admin' }
+  users: [ 
+    { id: 'admin-default', username: 'admin@example.com', password: 'password123', role: 'Admin', hourlyRate: 0 }
   ],
   tables: [],
   waiters: [],

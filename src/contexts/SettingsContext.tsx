@@ -28,8 +28,8 @@ interface SettingsContextType {
   removePrinter: (printerId: string) => void;
   setDefaultPrinter: (printerId: string | null) => void;
   // Users
-  addUser: (user: Omit<UserAccount, 'id' | 'password'> & { password?: string }) => void;
-  updateUser: (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string }) => void;
+  addUser: (user: Omit<UserAccount, 'id' | 'password'> & { password?: string, hourlyRate?: number }) => void;
+  updateUser: (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string, hourlyRate?: number }) => void;
   removeUser: (userId: string) => void;
   // Tables
   addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes'>) => void;
@@ -63,20 +63,20 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       
       let usersList: UserAccount[];
       if (parsedSettings.users && Array.isArray(parsedSettings.users) && parsedSettings.users.length > 0) {
-        usersList = parsedSettings.users.map(u => ({ ...u, password: u.password || 'password123' }));
+        usersList = parsedSettings.users.map(u => ({ ...u, password: u.password || 'password123', hourlyRate: u.hourlyRate || 0 }));
       } else {
-        usersList = defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' }));
+        usersList = defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123', hourlyRate: u.hourlyRate || 0 }));
       }
       
-      const tablesList = (parsedSettings.tables || defaultAppSettings.tables || []).map((table: TableDefinition) => ({
+      const tablesList = (parsedSettings.tables && Array.isArray(parsedSettings.tables) ? parsedSettings.tables : defaultAppSettings.tables || []).map((table: TableDefinition) => ({
         ...table,
         currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined)
       }));
 
-      const timeLogsList = (parsedSettings.timeLogs || defaultAppSettings.timeLogs || []).map((log: TimeLog) => ({
+      const timeLogsList = (parsedSettings.timeLogs && Array.isArray(parsedSettings.timeLogs) ? parsedSettings.timeLogs : defaultAppSettings.timeLogs || []).map((log: TimeLog) => ({
         ...log,
-        // Ensure totalBreakDurationMinutes is a number, default to 0 if not present or invalid
         totalBreakDurationMinutes: typeof log.totalBreakDurationMinutes === 'number' ? log.totalBreakDurationMinutes : 0,
+        hourlyRate: typeof log.hourlyRate === 'number' ? log.hourlyRate : undefined,
       }));
 
 
@@ -94,14 +94,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Failed to load settings from localStorage, resetting to defaults.", error);
-      const fallbackSettingsWithPasswords = {
+      const fallbackSettingsWithPasswordsAndRates = {
         ...defaultAppSettings,
-        users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123' })),
+        users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123', hourlyRate: u.hourlyRate || 0 })),
         currentUser: null,
-        timeLogs: (defaultAppSettings.timeLogs || []).map(log => ({...log, totalBreakDurationMinutes: 0})),
+        timeLogs: (defaultAppSettings.timeLogs || []).map(log => ({...log, totalBreakDurationMinutes: 0, hourlyRate: log.hourlyRate || undefined})),
       };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettingsWithPasswords));
-      setSettings(fallbackSettingsWithPasswords);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettingsWithPasswordsAndRates));
+      setSettings(fallbackSettingsWithPasswordsAndRates);
       setCurrentUser(null);
     }
     setIsLoading(false);
@@ -139,6 +139,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         id: userAccount.id,
         username: userAccount.username,
         role: userAccount.role,
+        hourlyRate: userAccount.hourlyRate, // Include hourlyRate
       };
       setCurrentUser(authenticatedUser);
       updateSettings({ currentUser: authenticatedUser }); 
@@ -158,7 +159,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const getTodaysTimeLogForCurrentUser = (): TimeLog | undefined => {
     if (!currentUser) return undefined;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    // Find a log for today that is not checked out OR is checked out but had an active break
     return settings.timeLogs.find(
       log => log.userId === currentUser.id && log.date === todayStr && (!log.checkOutTime || (log.breakStartTime && !log.breakEndTime))
     );
@@ -167,7 +167,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const checkInUser = () => {
     if (!currentUser) return;
     const existingLog = getTodaysTimeLogForCurrentUser();
-    if (existingLog && !existingLog.checkOutTime) return; // Already checked in and not checked out
+    if (existingLog && !existingLog.checkOutTime) return; 
 
     const newTimeLog: TimeLog = {
       id: `timelog-${Date.now()}`,
@@ -177,6 +177,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       checkInTime: new Date().toISOString(),
       date: format(new Date(), 'yyyy-MM-dd'),
       totalBreakDurationMinutes: 0,
+      hourlyRate: currentUser.hourlyRate, // Snapshot current user's hourly rate
     };
     updateSettings({ timeLogs: [...settings.timeLogs, newTimeLog] });
   };
@@ -184,9 +185,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const checkOutUser = () => {
     if (!currentUser) return;
     const activeLog = getTodaysTimeLogForCurrentUser();
-    if (!activeLog || activeLog.checkOutTime) return; // No active log or already checked out
+    if (!activeLog || activeLog.checkOutTime) return; 
 
-    // If on break, end break first
     let finalLog = activeLog;
     if (activeLog.breakStartTime && !activeLog.breakEndTime) {
        const breakEndTime = new Date().toISOString();
@@ -207,8 +207,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const startBreak = () => {
     if (!currentUser) return;
     const activeLog = getTodaysTimeLogForCurrentUser();
-    // Can only start break if checked in, not checked out, and not already on break
-    if (!activeLog || activeLog.checkOutTime || activeLog.breakStartTime && !activeLog.breakEndTime) return;
+    if (!activeLog || activeLog.checkOutTime || (activeLog.breakStartTime && !activeLog.breakEndTime)) return;
 
     const updatedTimeLogs = settings.timeLogs.map(log =>
       log.id === activeLog.id ? { ...log, breakStartTime: new Date().toISOString(), breakEndTime: undefined } : log
@@ -219,7 +218,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   const endBreak = () => {
     if (!currentUser) return;
     const activeLog = getTodaysTimeLogForCurrentUser();
-    // Can only end break if checked in, not checked out, and currently on break
     if (!activeLog || activeLog.checkOutTime || !activeLog.breakStartTime || activeLog.breakEndTime) return;
 
     const breakEndTime = new Date().toISOString();
@@ -230,7 +228,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         ...log, 
         breakEndTime: breakEndTime, 
         totalBreakDurationMinutes: (log.totalBreakDurationMinutes || 0) + breakDuration,
-        // breakStartTime: undefined, // Clear breakStartTime after ending, if needed for logic reset for multiple breaks
       } : log
     );
     updateSettings({ timeLogs: updatedTimeLogs });
@@ -254,22 +251,27 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // User Management
-  const addUser = (userData: Omit<UserAccount, 'id' | 'password'> & { password?: string }) => {
+  const addUser = (userData: Omit<UserAccount, 'id' | 'password'> & { password?: string, hourlyRate?: number }) => {
     const newUser: UserAccount = {
-        ...userData,
+        username: userData.username,
+        role: userData.role,
+        hourlyRate: userData.hourlyRate || 0,
         id: `user-${Date.now()}`,
         password: userData.password && userData.password.length > 0 ? userData.password : 'password123' 
     };
     updateSettings({ users: [...settings.users, newUser] });
   };
 
-  const updateUser = (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string }) => {
+  const updateUser = (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string, hourlyRate?: number }) => {
     const updatedUsers = settings.users.map(u => {
       if (u.id === userId) {
-        const { password, ...otherUpdates } = updates;
+        const { password, hourlyRate, ...otherUpdates } = updates;
         const updatedUser = { ...u, ...otherUpdates };
         if (password && password.length > 0) { 
           updatedUser.password = password;
+        }
+        if (hourlyRate !== undefined) {
+            updatedUser.hourlyRate = hourlyRate;
         }
         return updatedUser;
       }
@@ -284,9 +286,10 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
           id: userAccount.id,
           username: userAccount.username,
           role: userAccount.role,
+          hourlyRate: userAccount.hourlyRate,
         };
         setCurrentUser(updatedCurrentUser);
-        updateSettings({ currentUser: updatedCurrentUser });
+        updateSettings({ currentUser: updatedCurrentUser }); 
       }
     }
   };
@@ -400,4 +403,3 @@ export const useSettings = (): SettingsContextType => {
   }
   return context;
 };
-    

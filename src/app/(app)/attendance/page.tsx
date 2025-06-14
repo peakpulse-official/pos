@@ -1,3 +1,4 @@
+
 // src/app/(app)/attendance/page.tsx
 "use client"
 
@@ -5,7 +6,7 @@ import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { CalendarCheck, UserCircle, Users, BarChartBig, Landmark, Coffee } from "lucide-react";
+import { CalendarCheck, UserCircle, Users, BarChartBig, Landmark, Coffee, Wallet } from "lucide-react";
 import { format, parseISO, differenceInMinutes } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import type { TimeLog } from "@/lib/types";
@@ -13,12 +14,12 @@ import { useMemo } from "react";
 
 // Helper function to get effective duration in minutes for a single log (deducts break)
 const getEffectiveDurationInMinutes = (log: TimeLog): number => {
-  if (!log.checkOutTime) return 0; // Only count completed logs
+  if (!log.checkOutTime) return 0; 
   let duration = differenceInMinutes(parseISO(log.checkOutTime), parseISO(log.checkInTime));
   if (log.totalBreakDurationMinutes && log.totalBreakDurationMinutes > 0) {
     duration -= log.totalBreakDurationMinutes;
   }
-  return Math.max(0, duration); // Ensure duration is not negative
+  return Math.max(0, duration); 
 };
 
 // Helper function to format total minutes into "Xh Ym"
@@ -32,6 +33,14 @@ const formatTotalDurationFromMinutes = (totalMinutes: number): string => {
 const formatBreakDurationDisplay = (log: TimeLog): string => {
     if (!log.totalBreakDurationMinutes || log.totalBreakDurationMinutes <= 0) return "-";
     return formatTotalDurationFromMinutes(log.totalBreakDurationMinutes);
+};
+
+const calculatePayForLog = (log: TimeLog): string => {
+    if (!log.checkOutTime || !log.hourlyRate || log.hourlyRate <= 0) return "-";
+    const effectiveMinutes = getEffectiveDurationInMinutes(log);
+    if (effectiveMinutes <= 0) return "NPR 0.00";
+    const pay = (effectiveMinutes / 60) * log.hourlyRate;
+    return `NPR ${pay.toFixed(2)}`;
 };
 
 
@@ -56,13 +65,19 @@ export default function AttendancePage() {
 
   const userTotals = useMemo(() => {
     if (!isAdminOrManager) return null;
-    const totals: Record<string, { username: string, role: string, totalMinutes: number, totalBreakMinutes: number }> = {};
+    const totals: Record<string, { username: string, role: string, totalMinutes: number, totalBreakMinutes: number, totalPay: number, hourlyRate?: number }> = {};
     completedLogs.forEach(log => {
       if (!totals[log.userId]) {
-        totals[log.userId] = { username: log.username, role: log.role, totalMinutes: 0, totalBreakMinutes: 0 };
+        totals[log.userId] = { username: log.username, role: log.role, totalMinutes: 0, totalBreakMinutes: 0, totalPay: 0, hourlyRate: log.hourlyRate };
       }
-      totals[log.userId].totalMinutes += getEffectiveDurationInMinutes(log);
+      const effectiveMinutes = getEffectiveDurationInMinutes(log);
+      totals[log.userId].totalMinutes += effectiveMinutes;
       totals[log.userId].totalBreakMinutes += (log.totalBreakDurationMinutes || 0);
+      if (log.hourlyRate && log.hourlyRate > 0 && effectiveMinutes > 0) {
+          totals[log.userId].totalPay += (effectiveMinutes / 60) * log.hourlyRate;
+          // Ensure hourlyRate in totals is set if any log for that user has it (prefers the latest found, but should be consistent per user)
+          if (!totals[log.userId].hourlyRate) totals[log.userId].hourlyRate = log.hourlyRate;
+      }
     });
     return Object.values(totals).sort((a,b) => b.totalMinutes - a.totalMinutes);
   }, [isAdminOrManager, completedLogs]);
@@ -77,6 +92,17 @@ export default function AttendancePage() {
     }
     return 0;
   }, [isAdminOrManager, completedLogs, currentUser]);
+
+  const overallTotalPay = useMemo(() => {
+    if (!isAdminOrManager) return 0; // Only calculate overall pay for admin/manager view
+    return completedLogs.reduce((sum, log) => {
+        const effectiveMinutes = getEffectiveDurationInMinutes(log);
+        if (log.hourlyRate && log.hourlyRate > 0 && effectiveMinutes > 0) {
+            return sum + (effectiveMinutes / 60) * log.hourlyRate;
+        }
+        return sum;
+    }, 0);
+  }, [isAdminOrManager, completedLogs]);
 
 
   if (isLoading) {
@@ -110,16 +136,30 @@ export default function AttendancePage() {
             </p>
           </div>
         </div>
-        <Card className="shadow-md min-w-[200px] bg-muted/30">
-            <CardHeader className="pb-2 pt-3 px-4">
-                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
-                    <Landmark className="mr-2 h-4 w-4" /> Total Recorded Hours (Effective)
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="pb-3 px-4">
-                <p className="text-2xl font-bold text-primary">{formatTotalDurationFromMinutes(overallTotalMinutes)}</p>
-            </CardContent>
-        </Card>
+        <div className="flex flex-col sm:flex-row gap-2">
+            <Card className="shadow-md min-w-[200px] bg-muted/30">
+                <CardHeader className="pb-2 pt-3 px-4">
+                    <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                        <Landmark className="mr-2 h-4 w-4" /> Total Recorded Hours (Effective)
+                    </CardTitle>
+                </CardHeader>
+                <CardContent className="pb-3 px-4">
+                    <p className="text-2xl font-bold text-primary">{formatTotalDurationFromMinutes(overallTotalMinutes)}</p>
+                </CardContent>
+            </Card>
+            {isAdminOrManager && overallTotalPay > 0 && (
+                 <Card className="shadow-md min-w-[200px] bg-muted/30">
+                    <CardHeader className="pb-2 pt-3 px-4">
+                        <CardTitle className="text-sm font-medium text-muted-foreground flex items-center">
+                            <Wallet className="mr-2 h-4 w-4" /> Total Estimated Pay
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="pb-3 px-4">
+                        <p className="text-2xl font-bold text-primary">NPR {overallTotalPay.toFixed(2)}</p>
+                    </CardContent>
+                </Card>
+            )}
+        </div>
       </div>
       
 
@@ -127,9 +167,9 @@ export default function AttendancePage() {
         <Card className="shadow-lg">
             <CardHeader>
                 <CardTitle className="font-headline text-xl flex items-center">
-                    <Users className="mr-2 h-6 w-6 text-primary" /> User Hour Summaries
+                    <Users className="mr-2 h-6 w-6 text-primary" /> User Hour & Pay Summaries
                 </CardTitle>
-                <CardDescription>Total effective work hours and break times per user.</CardDescription>
+                <CardDescription>Total effective work hours, break times, and estimated pay per user (for users with an hourly rate).</CardDescription>
             </CardHeader>
             <CardContent>
                 <ScrollArea className="h-[150px] md:h-[200px]">
@@ -138,8 +178,9 @@ export default function AttendancePage() {
                             <TableRow>
                                 <TableHead>Username</TableHead>
                                 <TableHead>Role</TableHead>
-                                <TableHead className="text-right">Total Work Hours</TableHead>
-                                <TableHead className="text-right">Total Break Time</TableHead>
+                                <TableHead className="text-right">Work Hours</TableHead>
+                                <TableHead className="text-right">Break Time</TableHead>
+                                <TableHead className="text-right">Est. Pay (NPR)</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -149,6 +190,9 @@ export default function AttendancePage() {
                                     <TableCell>{userTotal.role}</TableCell>
                                     <TableCell className="text-right font-semibold">{formatTotalDurationFromMinutes(userTotal.totalMinutes)}</TableCell>
                                     <TableCell className="text-right">{formatTotalDurationFromMinutes(userTotal.totalBreakMinutes)}</TableCell>
+                                    <TableCell className="text-right font-medium">
+                                        {userTotal.hourlyRate && userTotal.hourlyRate > 0 && userTotal.totalPay > 0 ? userTotal.totalPay.toFixed(2) : <span className="text-muted-foreground italic">-</span>}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
@@ -164,7 +208,7 @@ export default function AttendancePage() {
              <BarChartBig className="mr-2 h-6 w-6 text-primary" /> Detailed Log
           </CardTitle>
           <CardDescription>
-            Most recent logs are shown first. Only completed shifts contribute to total hours. Durations are effective work time.
+            Most recent logs are shown first. Durations are effective work time. Pay is estimated for completed shifts with a set hourly rate.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -185,8 +229,9 @@ export default function AttendancePage() {
                       <TableHead>Date</TableHead>
                       <TableHead>Check-in</TableHead>
                       <TableHead>Check-out</TableHead>
-                      <TableHead>Break Taken</TableHead>
+                      <TableHead>Break</TableHead>
                       <TableHead>Duration</TableHead>
+                      {(isAdminOrManager || (currentUser && currentUser.hourlyRate && currentUser.hourlyRate > 0)) && <TableHead className="text-right">Pay (Est.)</TableHead>}
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -206,6 +251,9 @@ export default function AttendancePage() {
                         <TableCell className="font-semibold">
                             {log.checkOutTime ? formatTotalDurationFromMinutes(getEffectiveDurationInMinutes(log)) : <span className="text-muted-foreground italic">-</span>}
                         </TableCell>
+                        {(isAdminOrManager || (currentUser && currentUser.hourlyRate && currentUser.hourlyRate > 0)) && 
+                            <TableCell className="text-right font-medium">{calculatePayForLog(log)}</TableCell>
+                        }
                         <TableCell>
                           {log.checkOutTime ? 
                             <Badge variant="outline">Completed</Badge> : 
@@ -224,4 +272,3 @@ export default function AttendancePage() {
     </div>
   );
 }
-

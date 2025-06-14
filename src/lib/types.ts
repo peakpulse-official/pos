@@ -1,3 +1,4 @@
+
 import type { LucideIcon } from 'lucide-react';
 
 export interface MenuItem {
@@ -64,15 +65,17 @@ export interface PrinterDevice {
 export type UserRole = "Admin" | "Staff" | "Manager";
 export interface UserAccount {
   id: string;
-  username: string; // This will be used as the login identifier (e.g., email)
-  password?: string; // For prototype: plain text. DO NOT USE IN PRODUCTION.
+  username: string; 
+  password?: string; 
   role: UserRole;
+  hourlyRate?: number; // Added for hourly salary
 }
 
 export interface AuthenticatedUser {
   id: string;
   username: string;
   role: UserRole;
+  hourlyRate?: number; // Added for hourly salary
 }
 
 export interface TimeLog {
@@ -85,17 +88,18 @@ export interface TimeLog {
   date: string; // YYYY-MM-DD
   breakStartTime?: string; // ISO string
   breakEndTime?: string; // ISO string
-  totalBreakDurationMinutes?: number; // Calculated in minutes
+  totalBreakDurationMinutes?: number; 
+  hourlyRate?: number; // Snapshot of rate at time of check-in
 }
 
 export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
 
 export interface TableDefinition {
   id: string;
-  name: string; // e.g., "T1", "Window Table 5"
+  name: string; 
   capacity: number;
   status: TableStatus;
-  waiterId?: string | null; // ID of the assigned waiter
+  waiterId?: string | null; 
   notes?: string;
   currentOrderItems?: OrderItem[]; 
 }
@@ -117,11 +121,10 @@ export interface AppSettings {
   users: UserAccount[];
   tables: TableDefinition[];
   waiters: Waiter[];
-  currentUser: AuthenticatedUser | null; // Added for auth state
-  timeLogs: TimeLog[]; // Added for check-in/out
+  currentUser: AuthenticatedUser | null; 
+  timeLogs: TimeLog[]; 
 }
 
-// Mock order items for waiter view demonstration
 export const MOCK_WAITER_ORDER_ITEMS: OrderItem[] = [
   { id: 'item1', name: 'Espresso', price: 150, category: 'cat1', quantity: 1, description: 'Strong black coffee.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'coffee cup' },
   { id: 'item5', name: 'Chicken Mo:Mo (Steamed)', price: 250, category: 'cat2', quantity: 2, description: 'Nepali steamed chicken dumplings.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'momo dumplings' },
