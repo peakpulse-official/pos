@@ -45,7 +45,6 @@ export default function WaiterViewPage() {
                 <SelectValue placeholder="Select Waiter Profile" />
               </SelectTrigger>
               <SelectContent>
-                {/* <SelectItem value="" disabled>Select your profile</SelectItem>  <- Removed this problematic item */}
                 {settings.waiters.map((waiter) => (
                   <SelectItem key={waiter.id} value={waiter.id}>
                     {waiter.name}
@@ -90,11 +89,11 @@ export default function WaiterViewPage() {
             <Card className="shadow-lg">
                 <CardHeader className="items-center text-center">
                     <Info className="h-12 w-12 text-muted-foreground mb-3"/>
-                    <CardTitle className="font-headline text-xl">No Tables Configured</CardTitle>
+                    <CardTitle className="font-headline text-xl">No Tables on Floor Plan</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
                     <p className="text-muted-foreground">
-                    An Administrator needs to add tables in "Floor Plan > Manage Tables".
+                    Once tables are added by an Administrator in "Floor Plan > Manage Tables", they will appear here for you to manage.
                     </p>
                 </CardContent>
             </Card>
@@ -115,3 +114,4 @@ export default function WaiterViewPage() {
     </div>
   )
 }
+
