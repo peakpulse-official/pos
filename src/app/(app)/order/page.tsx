@@ -26,13 +26,11 @@ export default function OrderPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [activeTab, setActiveTab] = useState<string>(categories[0]?.id || "all")
   
-  const [orderType, setOrderType] = useState<OrderType | ''>(''); // Can be empty initially
+  const [orderType, setOrderType] = useState<OrderType | ''>(''); 
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
-  const [deliveryCharge, setDeliveryCharge] = useState(''); // String for input flexibility
-
-  const [isOrderInfoPanelOpen, setIsOrderInfoPanelOpen] = useState(true); // Control visibility of info panel section
+  const [deliveryCharge, setDeliveryCharge] = useState('');
 
   const { toast } = useToast()
   const { settings, isLoading: settingsLoading } = useSettings(); 
@@ -46,7 +44,8 @@ export default function OrderPage() {
         setAllMenuItems(defaultMenuItems);
         localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(defaultMenuItems));
       }
-    } catch (error) {
+    } catch (error)
+ {
       console.error("Failed to load menu items from localStorage", error);
       setAllMenuItems(defaultMenuItems);
     }
@@ -67,7 +66,6 @@ export default function OrderPage() {
         description: "Please select an order type and fill in customer details before adding items.",
         variant: "destructive"
       });
-      setIsOrderInfoPanelOpen(true); // Ensure panel is open
       return;
     }
     setCurrentOrder((prevOrder) => {
@@ -120,7 +118,6 @@ export default function OrderPage() {
       else if (currentOrder.length === 0) description = "Your order is empty.";
       
       toast({ title: "Cannot Place Order", description, variant: "destructive" });
-      if (!isOrderInfoComplete) setIsOrderInfoPanelOpen(true);
       return;
     }
     
@@ -143,7 +140,7 @@ export default function OrderPage() {
       total,
       status: 'paid', 
       createdAt: new Date().toISOString(),
-      orderType: orderType as OrderType, // orderType is validated by isOrderInfoComplete
+      orderType: orderType as OrderType, 
       customerName: customerName.trim(),
       customerPhone: customerPhone.trim() || undefined,
       deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
@@ -166,7 +163,6 @@ export default function OrderPage() {
       setDeliveryAddress('');
       setDeliveryCharge('');
       setOrderType(''); 
-      setIsOrderInfoPanelOpen(true); // Reopen for next order
     } catch (error) {
       console.error("Failed to save order to localStorage", error);
       toast({
@@ -184,25 +180,12 @@ export default function OrderPage() {
     setDeliveryAddress('');
     setDeliveryCharge('');
     setOrderType('');
-    setIsOrderInfoPanelOpen(true);
     toast({
       title: "Order Cleared",
       description: "All items and customer details removed from the current order.",
       variant: "default",
     })
   }
-
-  const handleEditOrderDetails = () => {
-    setIsOrderInfoPanelOpen(true); 
-  }
-
-  useEffect(() => {
-    // If order info becomes complete, and panel was open for input, close it
-    if (isOrderInfoComplete && isOrderInfoPanelOpen) {
-      setIsOrderInfoPanelOpen(false);
-    }
-  }, [isOrderInfoComplete, isOrderInfoPanelOpen]);
-
 
   const filteredMenuItems = useMemo(() => {
     if (isLoadingMenuItems) return [];
@@ -244,16 +227,9 @@ export default function OrderPage() {
         <div className="mb-4">
             <h1 className="text-2xl font-headline font-bold text-primary mb-1">Take-Out & Delivery Orders</h1>
             <p className="text-muted-foreground text-sm">
-              {isOrderInfoComplete ? "Add items to the order." : "Select order type and fill customer details below to begin."}
+              {isOrderInfoComplete ? "Add items to the order." : "Select order type and fill customer details in the right panel to begin."}
             </p>
         </div>
-
-        {(!isOrderInfoComplete || isOrderInfoPanelOpen) && (
-            <div className="lg:hidden mb-4">
-                {/* This section will be effectively handled by the CurrentOrderPanel on mobile */}
-                {/* A placeholder or a prompt might be useful here if CurrentOrderPanel wasn't sticky */}
-            </div>
-        )}
 
         <div className={`mb-4 sticky top-0 bg-background/80 backdrop-blur-sm py-3 z-10 ${!isOrderInfoComplete && 'opacity-50 pointer-events-none'}`}>
           <div className="relative">
@@ -323,10 +299,8 @@ export default function OrderPage() {
           deliveryCharge={deliveryCharge}
           setDeliveryCharge={setDeliveryCharge}
           isOrderInfoComplete={isOrderInfoComplete}
-          onEditOrderDetails={handleEditOrderDetails}
         />
       </div>
     </div>
   )
 }
-

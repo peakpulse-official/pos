@@ -8,7 +8,7 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/componen
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { MinusCircle, PlusCircle, Trash2, ShoppingCart, CheckCircle, User, Phone, Home, ShoppingBag, Truck, Edit, DollarSign } from "lucide-react"
+import { MinusCircle, PlusCircle, Trash2, ShoppingCart, CheckCircle, User, Phone, Home, ShoppingBag, Truck, DollarSign, Info } from "lucide-react"
 import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
@@ -22,7 +22,7 @@ interface CurrentOrderPanelProps {
   onRemoveItem: (itemId: string) => void
   onPlaceOrder: () => void
   onClearOrder: () => void
-  orderType: OrderType | '' // Allow empty initial state
+  orderType: OrderType | ''
   setOrderType: (type: OrderType) => void
   customerName: string
   setCustomerName: (name: string) => void
@@ -33,7 +33,6 @@ interface CurrentOrderPanelProps {
   deliveryCharge: string 
   setDeliveryCharge: (charge: string) => void
   isOrderInfoComplete: boolean
-  onEditOrderDetails: () => void
 }
 
 export function CurrentOrderPanel({
@@ -53,7 +52,6 @@ export function CurrentOrderPanel({
   deliveryCharge,
   setDeliveryCharge,
   isOrderInfoComplete,
-  onEditOrderDetails,
 }: CurrentOrderPanelProps) {
   const { settings, isLoading: settingsLoading } = useSettings();
 
@@ -74,21 +72,21 @@ export function CurrentOrderPanel({
           <CardTitle className="font-headline text-xl flex items-center">
             <ShoppingCart className="mr-2 h-6 w-6 text-primary" /> Current Order
           </CardTitle>
-          {isOrderInfoComplete && orderItems.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={onEditOrderDetails} className="text-xs">
-              <Edit className="mr-1 h-3 w-3" /> Edit Details
-            </Button>
-          )}
+          {/* Edit Details button removed as inputs are always visible */}
         </div>
       </CardHeader>
       
       <ScrollArea className="flex-grow">
-        {!isOrderInfoComplete ? (
-          <CardContent className="p-4">
-            <div className="text-center py-6 text-muted-foreground">
-              <p className="font-semibold mb-2">Complete Order Details</p>
-              <p className="text-sm">Please select an order type and fill in customer information to start adding items.</p>
-            </div>
+        <CardContent className="p-4">
+            {!isOrderInfoComplete && (
+                <div className="mb-4 p-3 rounded-md border border-primary/30 bg-primary/5">
+                    <div className="flex items-center text-primary mb-1.5">
+                        <Info className="h-5 w-5 mr-2"/>
+                        <p className="font-semibold text-sm">Complete Order Details</p>
+                    </div>
+                    <p className="text-xs text-primary/80">Select an order type and fill in customer information to start adding items.</p>
+                </div>
+            )}
             <div className="space-y-3">
               <div>
                   <Label className="text-sm font-medium mb-1.5 block">Order Type*</Label>
@@ -123,11 +121,14 @@ export function CurrentOrderPanel({
                 </>
               )}
             </div>
-          </CardContent>
-        ) : orderItems.length === 0 ? (
-            <p className="text-muted-foreground text-center py-6">Order is empty. Add items from the menu.</p>
-        ) : (
-          <CardContent className="p-4">
+
+          {orderItems.length === 0 && isOrderInfoComplete && (
+            <p className="text-muted-foreground text-center py-6 mt-4">Order is empty. Add items from the menu.</p>
+          )}
+
+          {orderItems.length > 0 && (
+            <>
+            <Separator className="my-4"/>
             <ul className="space-y-3 max-h-48 overflow-y-auto">
               {orderItems.map((item) => (
                 <li key={item.id} className="flex items-center space-x-3 p-2 rounded-md bg-card hover:bg-muted/50 transition-colors">
@@ -142,11 +143,12 @@ export function CurrentOrderPanel({
                 </li>
               ))}
             </ul>
-          </CardContent>
-        )}
+            </>
+          )}
+        </CardContent>
       </ScrollArea>
       
-      {(isOrderInfoComplete && orderItems.length > 0) && (
+      {orderItems.length > 0 && (
         <CardFooter className="flex flex-col p-4 border-t">
          {settingsLoading ? (
             <div className="w-full space-y-2 mb-3">
@@ -173,4 +175,3 @@ export function CurrentOrderPanel({
     </Card>
   )
 }
-
