@@ -50,7 +50,7 @@ import { ManageCategoriesDialog } from "@/components/menu/ManageCategoriesDialog
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 
 export default function MenuPage() {
-  const { settings, isLoading: settingsLoading } = useSettings();
+  const { settings, isLoading: settingsLoading, currentUser } = useSettings();
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
@@ -175,14 +175,16 @@ export default function MenuPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-headline font-bold text-primary">Menu Management</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsCategoryDialogOpen(true)}>
-            <FolderKanban className="mr-2 h-5 w-5" /> Manage Categories
-          </Button>
-          <Button variant="default" onClick={() => { setEditingItem(undefined); setIsFormOpen(true); }}>
-            <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
-          </Button>
-        </div>
+        {currentUser?.role === 'Admin' && (
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setIsCategoryDialogOpen(true)}>
+              <FolderKanban className="mr-2 h-5 w-5" /> Manage Categories
+            </Button>
+            <Button variant="default" onClick={() => { setEditingItem(undefined); setIsFormOpen(true); }}>
+              <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
+            </Button>
+          </div>
+        )}
         <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingItem(undefined); }}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
@@ -230,7 +232,7 @@ export default function MenuPage() {
                           <TableHead>Name</TableHead>
                           <TableHead>Recipe Snippet</TableHead>
                           <TableHead className="text-right">Price (NPR)</TableHead>
-                          <TableHead className="text-center w-[120px]">Actions</TableHead>
+                          {currentUser?.role === 'Admin' && <TableHead className="text-center w-[120px]">Actions</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -268,18 +270,20 @@ export default function MenuPage() {
                               )}
                             </TableCell>
                             <TableCell className="text-right">{item.price.toFixed(2)}</TableCell>
-                            <TableCell className="text-center">
-                              <div className="flex justify-center gap-2">
-                                <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="text-blue-600 hover:text-blue-700">
-                                  <Edit className="h-4 w-4" />
-                                  <span className="sr-only">Edit</span>
-                                </Button>
-                                <Button variant="ghost" size="icon" onClick={() => openDeleteItemDialog(item)} className="text-destructive hover:text-red-700">
-                                  <Trash2 className="h-4 w-4" />
-                                  <span className="sr-only">Delete</span>
-                                </Button>
-                              </div>
-                            </TableCell>
+                            {currentUser?.role === 'Admin' && (
+                              <TableCell className="text-center">
+                                <div className="flex justify-center gap-2">
+                                  <Button variant="ghost" size="icon" onClick={() => handleEditItem(item)} className="text-blue-600 hover:text-blue-700">
+                                    <Edit className="h-4 w-4" />
+                                    <span className="sr-only">Edit</span>
+                                  </Button>
+                                  <Button variant="ghost" size="icon" onClick={() => openDeleteItemDialog(item)} className="text-destructive hover:text-red-700">
+                                    <Trash2 className="h-4 w-4" />
+                                    <span className="sr-only">Delete</span>
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
                           </TableRow>
                         ))}
                       </TableBody>
