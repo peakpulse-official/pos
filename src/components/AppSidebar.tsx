@@ -215,7 +215,7 @@ export function AppSidebar() {
                 </Tooltip>
                 <Tooltip>
                     <TooltipTrigger asChild>
-                        <a href="https://facebook.com/ranasagar7" target="_blank" rel="noopener noreferrer" className="text-sidebar-foreground/60 hover:text-sidebar-foreground">
+                        <a href="https://facebook.com/ranasagar" target="_blank" rel="noopener noreferrer" className="text-sidebar-foreground/60 hover:text-sidebar-foreground">
                             <Facebook className="h-5 w-5" />
                             <span className="sr-only">Facebook</span>
                         </a>
