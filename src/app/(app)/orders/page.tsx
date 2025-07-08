@@ -127,7 +127,11 @@ export default function OrdersPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {sortedOrders.map((order) => (
+                  {sortedOrders.map((order) => {
+                    const currentOrderStatus = order.orderStatus || 'pending';
+                    const possibleNextStatuses = statusFlow[currentOrderStatus] || [];
+
+                    return (
                     <TableRow key={order.id}>
                       <TableCell className="font-medium">{order.orderNumber}</TableCell>
                       <TableCell>{order.customerName || 'N/A'}</TableCell>
@@ -145,20 +149,20 @@ export default function OrdersPage() {
                           </Badge>
                       </TableCell>
                       <TableCell>
-                          <Badge variant={getOrderStatusBadgeVariant(order.orderStatus)}>
-                              {order.orderStatus.replace("_", " ").toUpperCase()}
+                          <Badge variant={getOrderStatusBadgeVariant(currentOrderStatus)}>
+                              {currentOrderStatus.replace("_", " ").toUpperCase()}
                           </Badge>
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" className="h-8 w-8 p-0" disabled={statusFlow[order.orderStatus]?.length === 0}>
+                            <Button variant="ghost" className="h-8 w-8 p-0" disabled={possibleNextStatuses.length === 0}>
                               <span className="sr-only">Open menu</span>
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            {statusFlow[order.orderStatus]?.map(nextStatus => (
+                            {possibleNextStatuses.map(nextStatus => (
                               <DropdownMenuItem
                                 key={nextStatus}
                                 onClick={() => handleStatusUpdate(order.id, nextStatus)}
@@ -166,12 +170,12 @@ export default function OrdersPage() {
                                 Mark as {nextStatus.replace("_", " ")}
                               </DropdownMenuItem>
                             ))}
-                             {statusFlow[order.orderStatus]?.length === 0 && <DropdownMenuItem disabled>No further actions</DropdownMenuItem>}
+                             {possibleNextStatuses.length === 0 && <DropdownMenuItem disabled>No further actions</DropdownMenuItem>}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </ScrollArea>
