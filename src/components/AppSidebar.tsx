@@ -44,7 +44,7 @@ const navItemsBase = [
   { href: "/order", label: "Order", icon: ShoppingCart, roles: ['Admin', 'Manager', 'Staff'] },
   { href: "/menu", label: "Menu", icon: BookOpenText, roles: ['Admin', 'Manager', 'Staff'] },
   { href: "/billing", label: "Billing", icon: Printer, roles: ['Admin', 'Manager', 'Staff'] },
-  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager'] }, 
+  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager', 'Staff'] }, 
   { href: "/waiter-view", label: "Waiter View", icon: Clipboard, roles: ['Staff', 'Manager'] }, 
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Manager', 'Staff'] }, // New Dashboard link
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Admin', 'Manager'] },

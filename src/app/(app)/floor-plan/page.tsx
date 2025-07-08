@@ -1,7 +1,7 @@
 // src/app/(app)/floor-plan/page.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { LayoutGrid, SquarePen, Users } from "lucide-react"
@@ -10,13 +10,24 @@ import { ManageWaitersSection } from "@/components/floor-plan/ManageWaitersSecti
 import { FloorViewSection } from "@/components/floor-plan/FloorViewSection"
 import { Skeleton } from "@/components/ui/skeleton";
 import { useSettings } from "@/contexts/SettingsContext";
+import { cn } from "@/lib/utils"
 
 
 export default function FloorPlanPage() {
-  const { isLoading: settingsLoading } = useSettings();
+  const { settings, isLoading: settingsLoading, currentUser } = useSettings();
   const [activeTab, setActiveTab] = useState("view")
 
-  if (settingsLoading) {
+  const isAdminOrManager = currentUser?.role === 'Admin' || currentUser?.role === 'Manager';
+  
+  // If a staff user somehow lands on the 'waiters' tab (e.g. via URL), default them to 'view'
+  useEffect(() => {
+    if (!isAdminOrManager && activeTab === 'waiters') {
+      setActiveTab('view');
+    }
+  }, [activeTab, isAdminOrManager]);
+
+
+  if (settingsLoading || !currentUser) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -36,16 +47,21 @@ export default function FloorPlanPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-1 sm:grid-cols-3 mb-6">
+        <TabsList className={cn(
+          "grid w-full mb-6",
+          isAdminOrManager ? "sm:grid-cols-3" : "sm:grid-cols-2"
+        )}>
           <TabsTrigger value="view" className="text-base py-2.5">
             <LayoutGrid className="mr-2 h-5 w-5" /> Floor View
           </TabsTrigger>
           <TabsTrigger value="tables" className="text-base py-2.5">
             <SquarePen className="mr-2 h-5 w-5" /> Manage Tables
           </TabsTrigger>
-          <TabsTrigger value="waiters" className="text-base py-2.5">
-            <Users className="mr-2 h-5 w-5" /> Manage Waiters
-          </TabsTrigger>
+          {isAdminOrManager && (
+            <TabsTrigger value="waiters" className="text-base py-2.5">
+              <Users className="mr-2 h-5 w-5" /> Manage Waiters
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="view">
@@ -54,9 +70,11 @@ export default function FloorPlanPage() {
         <TabsContent value="tables">
           <ManageTablesSection />
         </TabsContent>
-        <TabsContent value="waiters">
-          <ManageWaitersSection />
-        </TabsContent>
+        {isAdminOrManager && (
+          <TabsContent value="waiters">
+            <ManageWaitersSection />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   )
