@@ -33,6 +33,7 @@ interface CurrentOrderPanelProps {
   isOrderInfoComplete: boolean
   tables: TableDefinition[]
   selectedTableId: string | null
+  isEditable: boolean
 }
 
 export function CurrentOrderPanel({
@@ -54,6 +55,7 @@ export function CurrentOrderPanel({
   isOrderInfoComplete,
   tables,
   selectedTableId,
+  isEditable,
 }: CurrentOrderPanelProps) {
   const { settings, isLoading: settingsLoading } = useSettings();
 
@@ -136,11 +138,11 @@ export function CurrentOrderPanel({
                   {item.imageUrl && ( <Image src={item.imageUrl} alt={item.name} width={40} height={40} className="rounded-sm object-cover" data-ai-hint={item.dataAiHint} /> )}
                   <div className="flex-grow"> <p className="font-medium text-sm">{item.name}</p> <p className="text-xs text-muted-foreground">NPR {item.price.toFixed(2)}</p> </div>
                   <div className="flex items-center space-x-1.5">
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1} > <MinusCircle className="h-4 w-4" /> </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1 || !isEditable} > <MinusCircle className="h-4 w-4" /> </Button>
                     <span className="text-sm w-5 text-center">{item.quantity}</span>
-                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} > <PlusCircle className="h-4 w-4" /> </Button>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} disabled={!isEditable}> <PlusCircle className="h-4 w-4" /> </Button>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemoveItem(item.id)}> <Trash2 className="h-4 w-4" /> </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemoveItem(item.id)} disabled={!isEditable}> <Trash2 className="h-4 w-4" /> </Button>
                 </li>
               ))}
             </ul>
@@ -168,11 +170,11 @@ export function CurrentOrderPanel({
             </div>
           )}
           <div className="w-full space-y-2">
-            <Button onClick={onPlaceOrder} className="w-full text-base py-3" size="lg" disabled={settingsLoading || orderItems.length === 0 || !isOrderInfoComplete}> 
+            <Button onClick={onPlaceOrder} className="w-full text-base py-3" size="lg" disabled={settingsLoading || orderItems.length === 0 || !isOrderInfoComplete || !isEditable}> 
                 {orderType === 'dine-in' ? <Send className="mr-2 h-5 w-5" /> : <CheckCircle className="mr-2 h-5 w-5" />}
                 {orderType === 'dine-in' ? 'Send to Kitchen' : 'Place Order'}
             </Button>
-            <Button onClick={onClearOrder} variant="outline" className="w-full" disabled={settingsLoading || (!isOrderInfoComplete && orderItems.length === 0)}> Clear Order </Button>
+            <Button onClick={onClearOrder} variant="outline" className="w-full" disabled={settingsLoading || (!isOrderInfoComplete && orderItems.length === 0) || !isEditable}> Clear Order </Button>
           </div>
         </CardFooter>
       )}

@@ -44,6 +44,20 @@ export default function OrderPage() {
   const { toast } = useToast()
   const { settings, addTable, updateTable, isLoading: settingsLoading, currentUser } = useSettings(); 
 
+  const selectedTable = useMemo(() => {
+    if (!selectedTableId) return null;
+    return settings.tables.find(t => t.id === selectedTableId);
+  }, [selectedTableId, settings.tables]);
+
+  // When a table is selected, load its existing order into the panel
+  useEffect(() => {
+    if (selectedTable && (selectedTable.status === 'occupied' || selectedTable.status === 'needs_bill')) {
+        setCurrentOrder(selectedTable.currentOrderItems || []);
+    } else {
+        setCurrentOrder([]);
+    }
+  }, [selectedTable]);
+
   useEffect(() => {
     try {
       const storedItems = localStorage.getItem(MENU_ITEMS_STORAGE_KEY);
@@ -71,6 +85,48 @@ export default function OrderPage() {
     if (orderType === 'dine-in') return !!selectedTableId;
     return false;
   }, [orderType, customerName, deliveryAddress, selectedTableId]);
+  
+  const canEditOrder = useMemo(() => {
+    if (!currentUser) return false;
+    // For non-dine-in, it's always editable
+    if (orderType !== 'dine-in') return true;
+    
+    // For dine-in, check table status and permissions
+    if (selectedTable) {
+        if (selectedTable.status === 'vacant') return true; // new order for vacant table is editable
+        if (currentUser.role === 'Admin' || currentUser.role === 'Manager') return true;
+        if (currentUser.role === 'Waiter' && selectedTable.waiterId === currentUser.id) return true;
+    }
+    // If no table is selected for dine-in, or if user doesn't have perms, not editable
+    return false;
+  }, [currentUser, orderType, selectedTable]);
+
+  const isUserAllowedToSelect = (table: TableDefinition): boolean => {
+    if (!currentUser) return false;
+    if (table.status === 'vacant') return true;
+    if (table.status === 'occupied' || table.status === 'needs_bill') {
+        if (currentUser.role === 'Admin' || currentUser.role === 'Manager') return true;
+        if (currentUser.role === 'Waiter' && table.waiterId === currentUser.id) return true;
+    }
+    return false;
+  };
+
+  const handleSelectTable = (table: TableDefinition) => {
+    if (isUserAllowedToSelect(table)) {
+        if (selectedTableId === table.id) {
+            setSelectedTableId(null); // Deselect if clicking the same table again
+        } else {
+            setSelectedTableId(table.id);
+        }
+    } else {
+        let description = `Table ${table.name} is currently ${table.status}.`;
+        if (table.status === 'occupied' || table.status === 'needs_bill') {
+            const assignedWaiter = settings.users.find(u => u.id === table.waiterId);
+            description = `You do not have permission. Table is assigned to ${assignedWaiter?.username || 'another waiter'}.`
+        }
+        toast({ title: "Access Denied", description, variant: "destructive" });
+    }
+  };
 
   const handleAddItem = (item: MenuItemType) => {
     if (!isOrderInfoComplete) {
@@ -127,7 +183,6 @@ export default function OrderPage() {
     const newTable = addTable(data);
     toast({ title: "Table Added", description: `${newTable.name} has been added to the floor plan.` });
     setIsCreateTableDialogOpen(false);
-    // If table was created by a waiter and auto-occupied, we can't select it here
     if (newTable.status === 'vacant') {
       setSelectedTableId(newTable.id);
     } else {
@@ -143,32 +198,19 @@ export default function OrderPage() {
     }
 
     if (orderType === 'dine-in') {
-        if (!selectedTableId || !currentUser) {
+        if (!selectedTableId || !currentUser || !selectedTable) {
             toast({ title: "Error", description: "No table selected or user not found.", variant: "destructive" });
             return;
         }
-        const table = settings.tables.find(t => t.id === selectedTableId);
-        if (!table) return;
-
-        // Combine new items with existing items if any
-        const existingItems = table.currentOrderItems || [];
-        const updatedItems = [...existingItems];
-        currentOrder.forEach(newItem => {
-            const existingItemIndex = updatedItems.findIndex(i => i.id === newItem.id);
-            if (existingItemIndex > -1) {
-                updatedItems[existingItemIndex].quantity += newItem.quantity;
-            } else {
-                updatedItems.push(newItem);
-            }
-        });
-
+        
+        const isNewOccupation = selectedTable.status === 'vacant';
         updateTable(selectedTableId, {
             status: 'occupied',
-            waiterId: table.waiterId || currentUser.id,
-            currentOrderItems: updatedItems,
+            waiterId: isNewOccupation ? currentUser.id : selectedTable.waiterId,
+            currentOrderItems: currentOrder, // Replace with the current order state
         });
 
-        toast({ title: "Order Sent!", description: `New items for table ${table.name} sent to the kitchen.` });
+        toast({ title: "Order Sent!", description: `Order for table ${selectedTable.name} sent to the kitchen.` });
 
     } else { // Takeout / Delivery
         const subtotal = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
@@ -317,28 +359,26 @@ export default function OrderPage() {
                 </Button>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
-                {settings.tables.map(table => (
-                  <Card
-                    key={table.id}
-                    className={cn(
-                        "text-center cursor-pointer hover:shadow-lg transition-shadow",
-                        table.status !== 'vacant' && "bg-muted/60 text-muted-foreground cursor-not-allowed",
-                        table.status === 'vacant' && "hover:border-primary"
-                    )}
-                    onClick={() => {
-                        if (table.status === 'vacant') {
-                            setSelectedTableId(table.id);
-                        } else {
-                            toast({ title: "Table Unavailable", description: `Table ${table.name} is currently ${table.status}.`, variant: "destructive" });
-                        }
-                    }}
-                  >
-                    <CardHeader className="p-3">
-                        <CardTitle className="text-base">{table.name}</CardTitle>
-                        <CardDescription className="text-xs capitalize">{table.status}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                ))}
+                {settings.tables.map(table => {
+                  const canSelect = isUserAllowedToSelect(table);
+                  return (
+                    <Card
+                      key={table.id}
+                      className={cn(
+                          "text-center cursor-pointer hover:shadow-lg transition-shadow",
+                          !canSelect && "bg-muted/60 text-muted-foreground cursor-not-allowed",
+                          canSelect && "hover:border-primary",
+                          selectedTableId === table.id && "ring-2 ring-primary border-primary"
+                      )}
+                      onClick={() => handleSelectTable(table)}
+                    >
+                      <CardHeader className="p-3">
+                          <CardTitle className="text-base">{table.name}</CardTitle>
+                          <CardDescription className="text-xs capitalize">{table.status.replace("_", " ")}</CardDescription>
+                      </CardHeader>
+                    </Card>
+                  );
+                })}
                 {settings.tables.length === 0 && (
                   <p className="col-span-full text-center text-muted-foreground py-8">No tables found. Create one to get started.</p>
                 )}
@@ -393,6 +433,7 @@ export default function OrderPage() {
           isOrderInfoComplete={isOrderInfoComplete}
           tables={settings.tables}
           selectedTableId={selectedTableId}
+          isEditable={canEditOrder}
         />
       </div>
 
