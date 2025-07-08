@@ -28,7 +28,7 @@ export default function SetupGuidePage() {
         </AlertDescription>
       </Alert>
 
-      <Accordion type="multiple" className="w-full space-y-4" defaultValue={["item-data-management", "item-auth"]}>
+      <Accordion type="multiple" className="w-full space-y-4" defaultValue={["item-data-management", "item-auth", "item-local-dev"]}>
         <Card className="shadow-lg">
           <AccordionItem value="item-data-management" className="border-b-0">
             <AccordionTrigger className="p-6 hover:no-underline">
@@ -212,12 +212,67 @@ CREATE TABLE order_items (
         </Card>
 
         <Card className="shadow-lg">
+          <AccordionItem value="item-local-dev" className="border-b-0">
+            <AccordionTrigger className="p-6 hover:no-underline">
+              <div className="flex items-start text-left space-x-3">
+                <Terminal className="h-7 w-7 text-primary mt-1" />
+                <div>
+                  <CardTitle className="font-headline text-xl">5. Running the App Locally</CardTitle>
+                  <CardDescription className="mt-1">How to set up and run this Next.js project on your personal computer.</CardDescription>
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="px-6 pb-6">
+              <div className="space-y-3 text-sm">
+                <p>You can run this application on your local machine for development and testing. Here’s a step-by-step guide:</p>
+                <ol className="list-decimal list-inside space-y-4 pl-4">
+                  <li>
+                    <strong>Download the Project Files:</strong>
+                    <p className="pl-4 mt-1 text-muted-foreground">First, you need to download the complete source code of this application from Firebase Studio to a folder on your computer.</p>
+                  </li>
+                  <li>
+                    <strong>Install Node.js and npm:</strong>
+                    <p className="pl-4 mt-1 text-muted-foreground">If you don't already have them, you must install Node.js (which includes npm, the Node Package Manager). You can download it from the official website: <Link href="https://nodejs.org/" target="_blank" className="text-primary hover:underline">nodejs.org</Link>.</p>
+                  </li>
+                  <li>
+                    <strong>Install Project Dependencies:</strong>
+                    <p className="pl-4 mt-1 text-muted-foreground">Open a terminal (like Command Prompt, PowerShell, or Terminal on macOS/Linux) and navigate to the root directory of your downloaded project folder. Then, run the following command:</p>
+                    <pre className="bg-muted p-2 rounded-md text-xs overflow-x-auto my-1"><code className="language-bash">npm install</code></pre>
+                    <p className="pl-4 mt-1 text-muted-foreground">This command reads the `package.json` file and installs all the necessary libraries and packages the project depends on.</p>
+                  </li>
+                  <li>
+                    <strong>Run the Development Servers:</strong>
+                    <p className="pl-4 mt-1 text-muted-foreground">This project requires two separate servers to run simultaneously in two different terminal windows for full functionality.</p>
+                    <ul className="list-disc list-inside space-y-2 pl-6 mt-2">
+                      <li>
+                        <strong>Next.js App Server:</strong> In your first terminal, run this command to start the main application:
+                        <pre className="bg-muted p-2 rounded-md text-xs overflow-x-auto my-1"><code className="language-bash">npm run dev</code></pre>
+                        <p className="mt-1 text-muted-foreground">This will typically start the app on <Link href="http://localhost:9002" target="_blank" className="text-primary hover:underline">http://localhost:9002</Link>.</p>
+                      </li>
+                      <li>
+                        <strong>Genkit AI Server:</strong> For the AI features (like dish recommendations) to work, you need to run the Genkit server. Open a <strong>second terminal window</strong> in the same project folder and run:
+                        <pre className="bg-muted p-2 rounded-md text-xs overflow-x-auto my-1"><code className="language-bash">npm run genkit:dev</code></pre>
+                        <p className="mt-1 text-muted-foreground">This starts the AI backend service that your Next.js app communicates with.</p>
+                      </li>
+                    </ul>
+                  </li>
+                  <li>
+                    <strong>Access the App:</strong>
+                    <p className="pl-4 mt-1 text-muted-foreground">Once both servers are running without errors, you can open your web browser and navigate to <Link href="http://localhost:9002" target="_blank" className="text-primary hover:underline">http://localhost:9002</Link> to use the application locally.</p>
+                  </li>
+                </ol>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Card>
+
+        <Card className="shadow-lg">
           <AccordionItem value="item-printer" className="border-b-0">
             <AccordionTrigger className="p-6 hover:no-underline">
               <div className="flex items-start text-left space-x-3">
                 <Printer className="h-7 w-7 text-primary mt-1" />
                 <div>
-                  <CardTitle className="font-headline text-xl">5. Real Printer Integration</CardTitle>
+                  <CardTitle className="font-headline text-xl">6. Real Printer Integration</CardTitle>
                   <CardDescription className="mt-1">Connecting to thermal receipt and kitchen printers. Current "Print Bill" uses browser print.</CardDescription>
                 </div>
               </div>
