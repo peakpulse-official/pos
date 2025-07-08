@@ -23,6 +23,8 @@ import {
   UserCircle,
   LayoutDashboard,
   Package, // Added for All Orders page
+  Instagram,
+  Facebook,
 } from "lucide-react"
 import {
   Sidebar,
@@ -39,6 +41,7 @@ import { cn } from "@/lib/utils"
 import { useSettings } from "@/contexts/SettingsContext"
 import { Button } from "./ui/button"
 import { useToast } from "@/hooks/use-toast"
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 
 
 const navItemsBase = [
@@ -190,6 +193,37 @@ export function AppSidebar() {
                 <span>Logout</span>
             </SidebarMenuButton>
         )}
+
+        <SidebarSeparator />
+        
+        <div className="mt-2 text-center text-xs text-sidebar-foreground/60 space-y-2">
+            <p className={cn(
+                "whitespace-nowrap transition-opacity duration-200",
+                state === "collapsed" ? "opacity-0 h-0 pointer-events-none" : "opacity-100"
+            )}>
+                Developer : Sagar Bikram Rana
+            </p>
+            <div className="flex justify-center gap-4">
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <a href="https://instagram.com/sagarrana7" target="_blank" rel="noopener noreferrer" className="text-sidebar-foreground/60 hover:text-sidebar-foreground">
+                            <Instagram className="h-5 w-5" />
+                            <span className="sr-only">Instagram</span>
+                        </a>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">instagram: sagarrana7</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                    <TooltipTrigger asChild>
+                        <a href="https://facebook.com/ranasagar7" target="_blank" rel="noopener noreferrer" className="text-sidebar-foreground/60 hover:text-sidebar-foreground">
+                            <Facebook className="h-5 w-5" />
+                            <span className="sr-only">Facebook</span>
+                        </a>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="center">facebook: ranasagar7</TooltipContent>
+                </Tooltip>
+            </div>
+        </div>
       </SidebarFooter>
     </Sidebar>
   )
