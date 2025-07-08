@@ -164,7 +164,7 @@ export function AppSidebar() {
       )}
 
       <SidebarFooter className="p-2 mt-auto">
-        {currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Manager') && (
+        {currentUser && currentUser.role === 'Admin' && (
             <SidebarMenuButton 
             asChild 
             tooltip="Settings" 

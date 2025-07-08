@@ -3,6 +3,7 @@
 "use client"
 
 import * as React from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller, useFieldArray } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
@@ -106,9 +107,11 @@ export default function SettingsPage() {
     addUser,
     updateUser, 
     removeUser,
-    isLoading 
+    isLoading,
+    currentUser
   } = useSettings()
   const { toast } = useToast()
+  const router = useRouter();
 
   const [isPrinterDialogOpen, setIsPrinterDialogOpen] = React.useState(false);
   const [isAddUserDialogOpen, setIsAddUserDialogOpen] = React.useState(false); 
@@ -146,6 +149,17 @@ export default function SettingsPage() {
     defaultValues: { username: "", role: "Staff", password: "", confirmPassword: "", hourlyRate: 0},
   })
 
+
+  React.useEffect(() => {
+    if (!isLoading && currentUser?.role !== 'Admin') {
+      toast({
+        title: "Access Denied",
+        description: "You do not have permission to view the settings page.",
+        variant: "destructive",
+      });
+      router.replace('/dashboard'); // Redirect to a safe default page
+    }
+  }, [isLoading, currentUser, router, toast]);
 
   React.useEffect(() => {
     if (!isLoading) {
@@ -236,14 +250,19 @@ export default function SettingsPage() {
   }
 
 
-  if (isLoading) {
+  if (isLoading || !currentUser || currentUser.role !== 'Admin') {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3">
           <SettingsIcon className="h-8 w-8 text-primary" />
           <h1 className="text-3xl font-headline font-bold text-primary">Settings</h1>
         </div>
-        {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-64 w-full" />)}
+        <Card>
+            <CardHeader>
+                <CardTitle>Access Denied</CardTitle>
+                <CardDescription>You must be an Administrator to access this page. Redirecting...</CardDescription>
+            </CardHeader>
+        </Card>
       </div>
     )
   }
