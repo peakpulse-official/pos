@@ -1,4 +1,3 @@
-
 // src/components/floor-plan/TableForm.tsx
 "use client"
 
@@ -7,14 +6,6 @@ import { useForm } from "react-hook-form"
 import * as z from "zod"
 import type { TableDefinition } from "@/lib/types"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
-} from "@/components/ui/dialog"
 import {
   Form,
   FormControl,
@@ -36,16 +27,15 @@ const tableSchema = z.object({
 type TableFormValues = z.infer<typeof tableSchema>
 
 interface TableFormProps {
-  isOpen: boolean
-  onClose: () => void
+  onCancel: () => void
   onSubmit: (data: TableFormValues) => void
   initialData?: TableDefinition
 }
 
-export function TableForm({ isOpen, onClose, onSubmit, initialData }: TableFormProps) {
+export function TableForm({ onCancel, onSubmit, initialData }: TableFormProps) {
   const form = useForm<TableFormValues>({
     resolver: zodResolver(tableSchema),
-    defaultValues: {
+    defaultValues: initialData || {
       name: "",
       capacity: 2,
       shape: "rectangle",
@@ -53,100 +43,88 @@ export function TableForm({ isOpen, onClose, onSubmit, initialData }: TableFormP
   })
 
   useEffect(() => {
-    if (isOpen) {
-      form.reset({
-        name: initialData?.name || "",
-        capacity: initialData?.capacity || 2,
-        shape: initialData?.shape || 'rectangle',
-      })
-    }
-  }, [initialData, form, isOpen])
+    form.reset(
+      initialData || {
+        name: "",
+        capacity: 2,
+        shape: "rectangle",
+      }
+    )
+  }, [initialData, form])
 
   const handleFormSubmit = (values: TableFormValues) => {
     onSubmit(values)
-    form.reset() 
   }
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="font-headline text-xl">
-            {initialData ? "Edit Table" : "Add New Table"}
-          </DialogTitle>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 py-2">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Table Name/Number</FormLabel>
-                  <FormControl>
-                    <Input placeholder="e.g., T1, Window Table" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="capacity"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Capacity</FormLabel>
-                  <FormControl>
-                    <Input type="number" placeholder="e.g., 4" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-             <FormField
-              control={form.control}
-              name="shape"
-              render={({ field }) => (
-                <FormItem className="space-y-2">
-                  <FormLabel>Table Shape</FormLabel>
-                  <FormControl>
-                    <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
-                      value={field.value}
-                      className="flex flex-row space-x-4"
-                    >
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl><RadioGroupItem value="rectangle" /></FormControl>
-                        <FormLabel className="font-normal">Rectangle</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl><RadioGroupItem value="square" /></FormControl>
-                        <FormLabel className="font-normal">Square</FormLabel>
-                      </FormItem>
-                      <FormItem className="flex items-center space-x-2 space-y-0">
-                        <FormControl><RadioGroupItem value="circle" /></FormControl>
-                        <FormLabel className="font-normal">Circle</FormLabel>
-                      </FormItem>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className="pt-4">
-              <DialogClose asChild>
-                <Button type="button" variant="outline" onClick={onClose}>
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-4 py-2">
+        <FormField
+          control={form.control}
+          name="name"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Table Name/Number</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., T1, Window Table" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="capacity"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Capacity</FormLabel>
+              <FormControl>
+                <Input type="number" placeholder="e.g., 4" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+         <FormField
+          control={form.control}
+          name="shape"
+          render={({ field }) => (
+            <FormItem className="space-y-2">
+              <FormLabel>Table Shape</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  defaultValue={field.value}
+                  value={field.value}
+                  className="flex flex-row space-x-4"
+                >
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl><RadioGroupItem value="rectangle" /></FormControl>
+                    <FormLabel className="font-normal">Rectangle</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl><RadioGroupItem value="square" /></FormControl>
+                    <FormLabel className="font-normal">Square</FormLabel>
+                  </FormItem>
+                  <FormItem className="flex items-center space-x-2 space-y-0">
+                    <FormControl><RadioGroupItem value="circle" /></FormControl>
+                    <FormLabel className="font-normal">Circle</FormLabel>
+                  </FormItem>
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <div className="flex justify-end space-x-2 pt-4">
+            <Button type="button" variant="outline" onClick={onCancel}>
+                Cancel
+            </Button>
+            <Button type="submit">
                 {initialData ? "Save Changes" : "Add Table"}
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
+            </Button>
+        </div>
+      </form>
+    </Form>
   )
 }

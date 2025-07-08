@@ -1,4 +1,3 @@
-
 // src/components/floor-plan/ManageTablesSection.tsx
 "use client"
 
@@ -19,6 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TableForm } from "@/components/floor-plan/TableForm"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
@@ -30,7 +30,7 @@ export function ManageTablesSection() {
   const [tableToDelete, setTableToDelete] = useState<TableDefinition | null>(null)
   const { toast } = useToast()
 
-  const handleTableFormSubmit = (data: Omit<TableDefinition, 'id' | 'status' | 'waiterId' | 'notes'>) => {
+  const handleTableFormSubmit = (data: Omit<TableDefinition, 'id' | 'status' | 'waiterId' | 'notes' | 'currentOrderItems'>) => {
     if (editingTable) {
       updateTable(editingTable.id, data)
       toast({ title: "Table Updated", description: `${data.name} has been updated.` })
@@ -125,12 +125,20 @@ export function ManageTablesSection() {
         )}
       </CardContent>
 
-      <TableForm
-        isOpen={isTableFormOpen}
-        onClose={() => { setIsTableFormOpen(false); setEditingTable(undefined); }}
-        onSubmit={handleTableFormSubmit}
-        initialData={editingTable}
-      />
+      <Dialog open={isTableFormOpen} onOpenChange={(open) => { setIsTableFormOpen(open); if (!open) { setEditingTable(undefined); }}}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-headline text-xl">
+              {editingTable ? "Edit Table" : "Add New Table"}
+            </DialogTitle>
+          </DialogHeader>
+          <TableForm
+            onCancel={() => { setIsTableFormOpen(false); setEditingTable(undefined); }}
+            onSubmit={handleTableFormSubmit}
+            initialData={editingTable}
+          />
+        </DialogContent>
+      </Dialog>
 
       {tableToDelete && (
         <AlertDialog open={!!tableToDelete} onOpenChange={() => setTableToDelete(null)}>

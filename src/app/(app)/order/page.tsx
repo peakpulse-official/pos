@@ -17,7 +17,7 @@ import { DynamicIcon } from "@/components/DynamicIcon"
 import { Button } from "@/components/ui/button"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { TableForm } from "@/components/floor-plan/TableForm"
 import { cn } from "@/lib/utils"
 import { ChefHat, ShoppingBag, Truck } from "lucide-react"
@@ -398,9 +398,11 @@ export default function OrderPage() {
 
       <Dialog open={isCreateTableDialogOpen} onOpenChange={setIsCreateTableDialogOpen}>
         <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="font-headline text-xl">Create New Table</DialogTitle>
+          </DialogHeader>
           <TableForm
-            isOpen={isCreateTableDialogOpen}
-            onClose={() => setIsCreateTableDialogOpen(false)}
+            onCancel={() => setIsCreateTableDialogOpen(false)}
             onSubmit={handleTableCreate}
           />
         </DialogContent>
