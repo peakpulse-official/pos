@@ -218,8 +218,25 @@ CREATE TABLE order_items (
                         <li>Sign up on Vercel and connect your Git account (e.g., GitHub).</li>
                         <li>Create a "New Project" and import your POS application's repository.</li>
                         <li>Vercel will automatically detect that it's a Next.js project.</li>
-                        <li>Go to the project's "Settings" tab and find "Environment Variables".</li>
-                        <li>Add your <code className="bg-muted px-1.5 py-0.5 rounded-sm">DATABASE_URL</code> and any other secrets from your <code className="bg-muted px-1.5 py-0.5 rounded-sm">.env.local</code> file. This keeps your credentials secure.</li>
+                        <li>
+                          <strong>Configure Environment Variables:</strong> Go to your new Vercel project's "Settings" tab and find "Environment Variables". This is where you will add your secret keys.
+                          <ul className="list-disc list-inside space-y-2 pl-6 mt-2">
+                            <li>
+                              <strong>Database URL:</strong> Add a variable with the key <code className="bg-muted px-1.5 py-0.5 rounded-sm">DATABASE_URL</code> and the value being your connection string from Supabase or another provider.
+                            </li>
+                            <li>
+                              <strong>Gemini API Key (Crucial for AI):</strong> The AI features (like recommendations) require a Google Gemini API key.
+                              <ol className="list-decimal list-inside space-y-1 pl-6 mt-1">
+                                <li>
+                                  Go to <Link href="https://aistudio.google.com/app/apikey" target="_blank" className="text-primary hover:underline">Google AI Studio</Link> to create an API key.
+                                </li>
+                                <li>
+                                  In Vercel, add a new environment variable with the key <code className="bg-muted px-1.5 py-0.5 rounded-sm">GOOGLE_API_KEY</code> and paste your generated key as the value.
+                                </li>
+                              </ol>
+                            </li>
+                          </ul>
+                        </li>
                         <li>Click "Deploy". Vercel will build and host your application. It will automatically redeploy every time you push a change to your main Git branch.</li>
                     </ol>
                   </li>
@@ -236,13 +253,13 @@ CREATE TABLE order_items (
                 <Terminal className="h-7 w-7 text-primary mt-1" />
                 <div>
                   <CardTitle className="font-headline text-xl">5. Running the App Locally</CardTitle>
-                  <CardDescription className="mt-1">How to set up and run this Next.js project on your personal computer.</CardDescription>
+                  <CardDescription className="mt-1">How to set up and run this Next.js project on your personal computer (Linux, macOS, or Windows).</CardDescription>
                 </div>
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-6">
               <div className="space-y-3 text-sm">
-                <p>You can run this application on your local machine for development and testing. Here’s a step-by-step guide:</p>
+                <p>You can run this application on your local machine for development and testing. The following steps are platform-agnostic and will work on Linux, macOS, or Windows (using WSL or Command Prompt/PowerShell). The primary tool is your system's terminal.</p>
                 <ol className="list-decimal list-inside space-y-4 pl-4">
                   <li>
                     <strong>Download the Project Files:</strong>
@@ -254,7 +271,7 @@ CREATE TABLE order_items (
                   </li>
                   <li>
                     <strong>Install Project Dependencies:</strong>
-                    <p className="pl-4 mt-1 text-muted-foreground">Open a terminal (like Command Prompt, PowerShell, or Terminal on macOS/Linux) and navigate to the root directory of your downloaded project folder. Then, run the following command:</p>
+                    <p className="pl-4 mt-1 text-muted-foreground">Open a terminal (like Terminal on Linux/macOS, or Command Prompt on Windows) and navigate to the root directory of your downloaded project folder. Then, run the following command:</p>
                     <pre className="bg-muted p-2 rounded-md text-xs overflow-x-auto my-1"><code className="language-bash">npm install</code></pre>
                     <p className="pl-4 mt-1 text-muted-foreground">This command reads the `package.json` file and installs all the necessary libraries and packages the project depends on.</p>
                   </li>
@@ -336,5 +353,7 @@ CREATE TABLE order_items (
     </div>
   )
 }
+
+    
 
     
