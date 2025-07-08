@@ -47,7 +47,7 @@ const printerSchema = z.object({
 
 const addUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  role: z.enum(["Admin", "Staff", "Manager"], { required_error: "User role is required" }),
+  role: z.enum(["Admin", "Manager", "Waiter"], { required_error: "User role is required" }),
   password: z.string().optional(), 
   confirmPassword: z.string().optional(),
   hourlyRate: z.coerce.number().min(0, "Hourly rate must be non-negative").optional(),
@@ -68,7 +68,7 @@ const addUserSchema = z.object({
 
 const editUserSchema = z.object({
   username: z.string().min(3, "Username must be at least 3 characters"),
-  role: z.enum(["Admin", "Staff", "Manager"], { required_error: "User role is required" }),
+  role: z.enum(["Admin", "Manager", "Waiter"], { required_error: "User role is required" }),
   password: z.string().optional(), 
   confirmPassword: z.string().optional(), 
   hourlyRate: z.coerce.number().min(0, "Hourly rate must be non-negative").optional(),
@@ -141,12 +141,12 @@ export default function SettingsPage() {
 
   const addUserForm = useForm<AddUserFormValues>({ 
     resolver: zodResolver(addUserSchema),
-    defaultValues: { username: "", role: "Staff", password: "", confirmPassword: "", hourlyRate: 0},
+    defaultValues: { username: "", role: "Waiter", password: "", confirmPassword: "", hourlyRate: 0},
   })
   
   const editUserForm = useForm<EditUserFormValues>({ 
     resolver: zodResolver(editUserSchema),
-    defaultValues: { username: "", role: "Staff", password: "", confirmPassword: "", hourlyRate: 0},
+    defaultValues: { username: "", role: "Waiter", password: "", confirmPassword: "", hourlyRate: 0},
   })
 
 
@@ -217,7 +217,7 @@ export default function SettingsPage() {
   const handleAddUserFormSubmit = (data: AddUserFormValues) => {
     addUser({ username: data.username, role: data.role, password: data.password, hourlyRate: data.hourlyRate }); 
     toast({ title: "User Added", description: `${data.username} has been added.` });
-    addUserForm.reset({ username: "", role: "Staff", password: "", confirmPassword: "", hourlyRate: 0 });
+    addUserForm.reset({ username: "", role: "Waiter", password: "", confirmPassword: "", hourlyRate: 0 });
     setIsAddUserDialogOpen(false);
   }
 
@@ -367,7 +367,7 @@ export default function SettingsPage() {
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="font-headline text-xl flex items-center"><Users className="mr-2 h-5 w-5" />User Management</CardTitle>
-            <CardDescription>Add, edit, or remove staff accounts and manage permissions.</CardDescription>
+            <CardDescription>Add, edit, or remove user accounts and manage roles.</CardDescription>
           </div>
            <Dialog open={isAddUserDialogOpen} onOpenChange={setIsAddUserDialogOpen}>
             <DialogTrigger asChild>
@@ -378,7 +378,7 @@ export default function SettingsPage() {
               <Form {...addUserForm}>
                 <form onSubmit={addUserForm.handleSubmit(handleAddUserFormSubmit)} className="space-y-4">
                   <FormField control={addUserForm.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="e.g., john.doe" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                  <FormField control={addUserForm.control} name="role" render={({ field }) => ( <FormItem><FormLabel>Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Manager">Manager</SelectItem><SelectItem value="Staff">Staff</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
+                  <FormField control={addUserForm.control} name="role" render={({ field }) => ( <FormItem><FormLabel>Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Manager">Manager</SelectItem><SelectItem value="Waiter">Waiter</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                   <FormField control={addUserForm.control} name="hourlyRate" render={({ field }) => ( <FormItem><FormLabel>Hourly Rate (NPR)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 250" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                   <FormField control={addUserForm.control} name="password" render={({ field }) => ( <FormItem><FormLabel>Password (Optional)</FormLabel><FormControl><Input type="password" placeholder="Min. 6 characters (or leave blank for default)" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                   <FormField control={addUserForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirm Password</FormLabel><FormControl><Input type="password" placeholder="Confirm password" {...field} /></FormControl><FormMessage /></FormItem> )}/>
@@ -416,7 +416,7 @@ export default function SettingsPage() {
             <Form {...editUserForm}>
               <form onSubmit={editUserForm.handleSubmit(handleEditUserFormSubmit)} className="space-y-4">
                 <FormField control={editUserForm.control} name="username" render={({ field }) => ( <FormItem><FormLabel>Username</FormLabel><FormControl><Input placeholder="e.g., john.doe" {...field} /></FormControl><FormMessage /></FormItem> )}/>
-                <FormField control={editUserForm.control} name="role" render={({ field }) => ( <FormItem><FormLabel>Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Manager">Manager</SelectItem><SelectItem value="Staff">Staff</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
+                <FormField control={editUserForm.control} name="role" render={({ field }) => ( <FormItem><FormLabel>Role</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select role" /></SelectTrigger></FormControl><SelectContent><SelectItem value="Admin">Admin</SelectItem><SelectItem value="Manager">Manager</SelectItem><SelectItem value="Waiter">Waiter</SelectItem></SelectContent></Select><FormMessage /></FormItem> )}/>
                 <FormField control={editUserForm.control} name="hourlyRate" render={({ field }) => ( <FormItem><FormLabel>Hourly Rate (NPR)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 250" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                 <FormField control={editUserForm.control} name="password" render={({ field }) => ( <FormItem><FormLabel>New Password (Optional)</FormLabel><FormControl><Input type="password" placeholder="Leave blank to keep current password" {...field} /></FormControl><FormMessage /></FormItem> )}/>
                 <FormField control={editUserForm.control} name="confirmPassword" render={({ field }) => ( <FormItem><FormLabel>Confirm New Password</FormLabel><FormControl><Input type="password" placeholder="Confirm new password" {...field} /></FormControl><FormMessage /></FormItem> )}/>

@@ -54,8 +54,8 @@ export default function LoginPage() {
       // Redirect based on role
       if (authenticatedUser.role === 'Admin') {
         router.push("/floor-plan")
-      } else if (authenticatedUser.role === 'Manager' || authenticatedUser.role === 'Staff') {
-        router.push("/dashboard") // Redirect Manager and Staff to dashboard
+      } else if (authenticatedUser.role === 'Manager' || authenticatedUser.role === 'Waiter') {
+        router.push("/dashboard") // Redirect Manager and Waiter to dashboard
       } else {
         router.push("/order") // Default page if role is somehow different
       }

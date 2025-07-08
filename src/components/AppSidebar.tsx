@@ -41,16 +41,16 @@ import { useToast } from "@/hooks/use-toast"
 
 
 const navItemsBase = [
-  { href: "/order", label: "Order", icon: ShoppingCart, roles: ['Admin', 'Manager', 'Staff'] },
-  { href: "/menu", label: "Menu", icon: BookOpenText, roles: ['Admin', 'Manager', 'Staff'] },
-  { href: "/billing", label: "Billing", icon: Printer, roles: ['Admin', 'Manager', 'Staff'] },
-  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager', 'Staff'] }, 
-  { href: "/waiter-view", label: "Waiter View", icon: Clipboard, roles: ['Staff', 'Manager'] }, 
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Manager', 'Staff'] }, // New Dashboard link
+  { href: "/order", label: "Order", icon: ShoppingCart, roles: ['Admin', 'Manager', 'Waiter'] },
+  { href: "/menu", label: "Menu", icon: BookOpenText, roles: ['Admin', 'Manager', 'Waiter'] },
+  { href: "/billing", label: "Billing", icon: Printer, roles: ['Admin', 'Manager', 'Waiter'] },
+  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager', 'Waiter'] }, 
+  { href: "/waiter-view", label: "Waiter View", icon: Clipboard, roles: ['Waiter', 'Manager'] }, 
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Manager', 'Waiter'] }, 
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Admin', 'Manager'] },
-  { href: "/recommendations", label: "AI Recommends", icon: Sparkles, roles: ['Admin', 'Manager', 'Staff'] },
+  { href: "/recommendations", label: "AI Recommends", icon: Sparkles, roles: ['Admin', 'Manager', 'Waiter'] },
   { href: "/attendance", label: "Attendance Logs", icon: CalendarCheck, roles: ['Admin', 'Manager'] }, 
-  { href: "/setup-guide", label: "Setup Guide", icon: Rocket, roles: ['Admin', 'Manager', 'Staff'] },
+  { href: "/setup-guide", label: "Setup Guide", icon: Rocket, roles: ['Admin', 'Manager'] },
 ];
 
 export function AppSidebar() {

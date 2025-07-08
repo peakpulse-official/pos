@@ -100,7 +100,8 @@ export const defaultAppSettings: AppSettings = {
   defaultPrinterId: null,
   users: [ 
     { id: 'admin-default', username: 'admin@example.com', password: 'password123', role: 'Admin', hourlyRate: 0 },
-     { id: 'staff-default', username: 'staff@example.com', password: 'password123', role: 'Staff', hourlyRate: 200 },
+    { id: 'waiter-default', username: 'waiter@example.com', password: 'password123', role: 'Waiter', hourlyRate: 200 },
+    { id: 'manager-default', username: 'manager@example.com', password: 'password123', role: 'Manager', hourlyRate: 350 },
   ],
   tables: [],
   waiters: [], // This is now deprecated and will be removed.

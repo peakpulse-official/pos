@@ -16,7 +16,7 @@ export default function WaiterViewPage() {
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
   const servingStaff = useMemo(() => {
-    return settings.users.filter(u => u.role === 'Staff' || u.role === 'Manager');
+    return settings.users.filter(u => u.role === 'Waiter' || u.role === 'Manager');
   }, [settings.users]);
 
   const selectedUser = servingStaff.find(w => w.id === selectedUserId)
@@ -63,11 +63,11 @@ export default function WaiterViewPage() {
          <Card className="shadow-lg">
             <CardHeader className="items-center text-center">
                 <UserCheck className="h-12 w-12 text-muted-foreground mb-3"/>
-                <CardTitle className="font-headline text-xl">No Staff or Manager Accounts</CardTitle>
+                <CardTitle className="font-headline text-xl">No Serving Staff Accounts</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
                 <p className="text-muted-foreground">
-                Please ask an Administrator to add 'Staff' or 'Manager' accounts in Settings.
+                Please ask an Administrator to add 'Waiter' or 'Manager' accounts in Settings.
                 </p>
             </CardContent>
          </Card>

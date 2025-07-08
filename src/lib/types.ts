@@ -63,7 +63,7 @@ export interface PrinterDevice {
   type: PrinterType;
 }
 
-export type UserRole = "Admin" | "Staff" | "Manager";
+export type UserRole = "Admin" | "Manager" | "Waiter";
 export interface UserAccount {
   id:string;
   username: string; 
