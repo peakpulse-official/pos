@@ -1,4 +1,3 @@
-
 // src/contexts/SettingsContext.tsx
 "use client"
 
@@ -34,7 +33,7 @@ interface SettingsContextType {
   updateUser: (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string, hourlyRate?: number }) => void;
   removeUser: (userId: string) => void;
   // Tables
-  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>) => void;
+  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>) => TableDefinition;
   updateTable: (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => void;
   removeTable: (tableId: string) => void;
   assignMockOrderToTable: (tableId: string) => void;
@@ -317,7 +316,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Table Management
-  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>) => {
+  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>): TableDefinition => {
     const newTable: TableDefinition = {
       ...tableData,
       id: `table-${Date.now()}`,
@@ -338,6 +337,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     if (newTable.status === 'occupied') {
       assignMockOrderToTable(newTable.id);
     }
+    return newTable;
   };
 
   const updateTable = (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => {

@@ -1,21 +1,26 @@
-
 // src/app/(app)/order/page.tsx
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { menuItems as defaultMenuItems } from "@/lib/data"
-import type { MenuItem as MenuItemType, OrderItem, MenuCategory, Order, OrderType } from "@/lib/types"
+import type { MenuItem as MenuItemType, OrderItem, MenuCategory, Order, OrderType, TableDefinition } from "@/lib/types"
 import { MenuItemCard } from "@/components/order/MenuItemCard"
 import { CurrentOrderPanel } from "@/components/order/CurrentOrderPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Input } from "@/components/ui/input"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
-import { Search, PackageOpen, Info } from "lucide-react"
+import { Search, PackageOpen, Info, PlusCircle } from "lucide-react"
 import { useSettings } from "@/contexts/SettingsContext" 
 import { Skeleton } from "@/components/ui/skeleton"
-import { Card } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DynamicIcon } from "@/components/DynamicIcon"
+import { Button } from "@/components/ui/button"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Label } from "@/components/ui/label"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import { TableForm } from "@/components/floor-plan/TableForm"
+import { cn } from "@/lib/utils"
+import { ChefHat, ShoppingBag, Truck } from "lucide-react"
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
@@ -32,9 +37,12 @@ export default function OrderPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryCharge, setDeliveryCharge] = useState('');
+  const [selectedTableId, setSelectedTableId] = useState<string | null>(null);
+  const [isCreateTableDialogOpen, setIsCreateTableDialogOpen] = useState(false);
+
 
   const { toast } = useToast()
-  const { settings, isLoading: settingsLoading } = useSettings(); 
+  const { settings, addTable, updateTable, isLoading: settingsLoading, currentUser } = useSettings(); 
 
   useEffect(() => {
     try {
@@ -42,29 +50,33 @@ export default function OrderPage() {
       if (storedItems) {
         setAllMenuItems(JSON.parse(storedItems));
       } else {
-        setAllMenuItems(defaultMenuItems);
-        localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(defaultMenuItems));
+        const defaultItems = [
+            { id: 'item1', name: 'Espresso', price: 150, category: 'cat1', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'coffee cup', description: 'Strong black coffee.', recipe: '1. Grind coffee beans. 2. Tamp grounds. 3. Brew with espresso machine for 25-30 seconds. 4. Serve immediately.' },
+        ];
+        setAllMenuItems(defaultItems);
+        localStorage.setItem(MENU_ITEMS_STORAGE_KEY, JSON.stringify(defaultItems));
       }
     } catch (error)
  {
       console.error("Failed to load menu items from localStorage", error);
-      setAllMenuItems(defaultMenuItems);
+      setAllMenuItems([]);
     }
     setIsLoadingMenuItems(false);
   }, []);
 
   const isOrderInfoComplete = useMemo(() => {
     if (!orderType) return false;
-    if (!customerName.trim()) return false;
-    if (orderType === 'delivery' && !deliveryAddress.trim()) return false;
-    return true;
-  }, [orderType, customerName, deliveryAddress]);
+    if (orderType === 'delivery') return !!customerName.trim() && !!deliveryAddress.trim();
+    if (orderType === 'takeout') return !!customerName.trim();
+    if (orderType === 'dine-in') return !!selectedTableId;
+    return false;
+  }, [orderType, customerName, deliveryAddress, selectedTableId]);
 
   const handleAddItem = (item: MenuItemType) => {
     if (!isOrderInfoComplete) {
       toast({
         title: "Order Details Incomplete",
-        description: "Please select an order type and fill in customer details before adding items.",
+        description: "Please select an order type and fill in the required details before adding items.",
         variant: "destructive"
       });
       return;
@@ -110,78 +122,108 @@ export default function OrderPage() {
       })
     }
   }
+  
+  const handleTableCreate = (data: Omit<TableDefinition, 'id' | 'status' | 'waiterId' | 'notes' | 'currentOrderItems'>) => {
+    const newTable = addTable(data);
+    toast({ title: "Table Added", description: `${newTable.name} has been added to the floor plan.` });
+    setIsCreateTableDialogOpen(false);
+    // If table was created by a waiter and auto-occupied, we can't select it here
+    if (newTable.status === 'vacant') {
+      setSelectedTableId(newTable.id);
+    } else {
+        toast({ title: "Table is Occupied", description: "The new table was automatically occupied and assigned. View it in the Waiter View.", variant: "default" })
+    }
+  };
+
 
   const handlePlaceOrder = () => {
-    if (settingsLoading || currentOrder.length === 0 || !isOrderInfoComplete) {
-      let description = "Your order is empty or order details are incomplete.";
-      if (settingsLoading) description = "Settings are still loading.";
-      else if (!isOrderInfoComplete) description = "Please complete order type and customer details.";
-      else if (currentOrder.length === 0) description = "Your order is empty.";
-      
-      toast({ title: "Cannot Place Order", description, variant: "destructive" });
+    if (currentOrder.length === 0 || !isOrderInfoComplete || settingsLoading) {
+      toast({ title: "Cannot Place Order", description: "Check that order details are complete and items have been added.", variant: "destructive" });
       return;
     }
-    
-    const subtotal = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const vatAmount = subtotal * settings.vatRate;
-    const serviceChargeAmount = subtotal * settings.serviceChargeRate;
-    const deliveryChargeAmount = parseFloat(deliveryCharge) || 0;
-    const total = subtotal + vatAmount + serviceChargeAmount + deliveryChargeAmount;
 
-    const newOrder: Order = {
-      id: `order${Date.now()}`,
-      orderNumber: `ORD${Date.now().toString().slice(-6)}`,
-      items: currentOrder,
-      subtotal,
-      vat: vatAmount,
-      vatRate: settings.vatRate,
-      serviceCharge: serviceChargeAmount,
-      serviceChargeRate: settings.serviceChargeRate,
-      deliveryCharge: deliveryChargeAmount > 0 ? deliveryChargeAmount : undefined,
-      total,
-      orderStatus: 'confirmed', 
-      paymentStatus: 'paid',
-      createdAt: new Date().toISOString(),
-      orderType: orderType as OrderType, 
-      customerName: customerName.trim(),
-      customerPhone: customerPhone.trim() || undefined,
-      deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
-    };
+    if (orderType === 'dine-in') {
+        if (!selectedTableId || !currentUser) {
+            toast({ title: "Error", description: "No table selected or user not found.", variant: "destructive" });
+            return;
+        }
+        const table = settings.tables.find(t => t.id === selectedTableId);
+        if (!table) return;
 
-    try {
-      const existingOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
-      const existingOrders: Order[] = existingOrdersRaw ? JSON.parse(existingOrdersRaw) : [];
-      const updatedOrders = [newOrder, ...existingOrders]; 
-      localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
-      
-      toast({
-        title: "Order Placed!",
-        description: `Total: NPR ${total.toFixed(2)}. Order #${newOrder.orderNumber}`,
-        variant: "default",
-      })
-      setCurrentOrder([]) 
-      setCustomerName('');
-      setCustomerPhone('');
-      setDeliveryAddress('');
-      setDeliveryCharge('');
-      setOrderType(''); 
-    } catch (error) {
-      console.error("Failed to save order to localStorage", error);
-      toast({
-        title: "Error Placing Order",
-        description: "Could not save your order. Please try again.",
-        variant: "destructive",
-      })
+        // Combine new items with existing items if any
+        const existingItems = table.currentOrderItems || [];
+        const updatedItems = [...existingItems];
+        currentOrder.forEach(newItem => {
+            const existingItemIndex = updatedItems.findIndex(i => i.id === newItem.id);
+            if (existingItemIndex > -1) {
+                updatedItems[existingItemIndex].quantity += newItem.quantity;
+            } else {
+                updatedItems.push(newItem);
+            }
+        });
+
+        updateTable(selectedTableId, {
+            status: 'occupied',
+            waiterId: table.waiterId || currentUser.id,
+            currentOrderItems: updatedItems,
+        });
+
+        toast({ title: "Order Sent!", description: `New items for table ${table.name} sent to the kitchen.` });
+
+    } else { // Takeout / Delivery
+        const subtotal = currentOrder.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        const vatAmount = subtotal * settings.vatRate;
+        const serviceChargeAmount = subtotal * settings.serviceChargeRate;
+        const deliveryChargeAmount = parseFloat(deliveryCharge) || 0;
+        const total = subtotal + vatAmount + serviceChargeAmount + deliveryChargeAmount;
+
+        const newOrder: Order = {
+          id: `order${Date.now()}`,
+          orderNumber: `ORD${Date.now().toString().slice(-6)}`,
+          items: currentOrder,
+          subtotal,
+          vat: vatAmount,
+          vatRate: settings.vatRate,
+          serviceCharge: serviceChargeAmount,
+          serviceChargeRate: settings.serviceChargeRate,
+          deliveryCharge: deliveryChargeAmount > 0 ? deliveryChargeAmount : undefined,
+          total,
+          orderStatus: 'confirmed', 
+          paymentStatus: 'paid',
+          createdAt: new Date().toISOString(),
+          orderType: orderType as OrderType, 
+          customerName: customerName.trim(),
+          customerPhone: customerPhone.trim() || undefined,
+          deliveryAddress: orderType === 'delivery' ? deliveryAddress.trim() : undefined,
+        };
+
+        try {
+          const existingOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
+          const existingOrders: Order[] = existingOrdersRaw ? JSON.parse(existingOrdersRaw) : [];
+          const updatedOrders = [newOrder, ...existingOrders]; 
+          localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+          
+          toast({
+            title: "Order Placed!",
+            description: `Total: NPR ${total.toFixed(2)}. Order #${newOrder.orderNumber}`,
+            variant: "default",
+          })
+        } catch (error) {
+          console.error("Failed to save order to localStorage", error);
+          toast({ title: "Error Placing Order", variant: "destructive", description: "Could not save your order." })
+        }
     }
+    handleClearOrder();
   }
 
   const handleClearOrder = () => {
-    setCurrentOrder([])
+    setCurrentOrder([]);
     setCustomerName('');
     setCustomerPhone('');
     setDeliveryAddress('');
     setDeliveryCharge('');
     setOrderType('');
+    setSelectedTableId(null);
     toast({
       title: "Order Cleared",
       description: "All items and customer details removed from the current order.",
@@ -227,10 +269,15 @@ export default function OrderPage() {
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 h-full">
       <div className="lg:col-span-2 flex flex-col">
         <div className="mb-4">
-            <h1 className="text-2xl font-headline font-bold text-primary mb-1">Take-Out & Delivery Orders</h1>
-            <p className="text-muted-foreground text-sm">
-              {isOrderInfoComplete ? "Add items to the order." : "Select order type and fill customer details in the right panel to begin."}
-            </p>
+            <h1 className="text-2xl font-headline font-bold text-primary mb-1">Point of Sale</h1>
+            <div className="space-y-3">
+                <Label className="text-base font-medium mb-1.5 block">Select Order Type</Label>
+                <RadioGroup value={orderType} onValueChange={(value) => { setOrderType(value as OrderType); setSelectedTableId(null); }} className="flex space-x-4">
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="dine-in" id="dine-in" /><Label htmlFor="dine-in" className="flex items-center text-base"><ChefHat className="mr-1.5 h-5 w-5"/>Dine-In</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="takeout" id="takeout" /><Label htmlFor="takeout" className="flex items-center text-base"><ShoppingBag className="mr-1.5 h-5 w-5"/>Take-Out</Label></div>
+                    <div className="flex items-center space-x-2"><RadioGroupItem value="delivery" id="delivery" /><Label htmlFor="delivery" className="flex items-center text-base"><Truck className="mr-1.5 h-5 w-5"/>Delivery</Label></div>
+                </RadioGroup>
+            </div>
         </div>
 
         <div className={`mb-4 sticky top-0 bg-background/80 backdrop-blur-sm py-3 z-10 ${!isOrderInfoComplete && 'opacity-50 pointer-events-none'}`}>
@@ -260,26 +307,69 @@ export default function OrderPage() {
           </Tabs>
         </div>
         
-        <ScrollArea className="flex-grow pr-2 -mr-2"> 
-          {!isOrderInfoComplete ? (
+        <ScrollArea className="flex-grow pr-2 -mr-2">
+          {orderType === 'dine-in' && !selectedTableId && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h2 className="text-xl font-headline text-primary">Select a Table</h2>
+                <Button onClick={() => setIsCreateTableDialogOpen(true)}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Create New Table
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {settings.tables.map(table => (
+                  <Card
+                    key={table.id}
+                    className={cn(
+                        "text-center cursor-pointer hover:shadow-lg transition-shadow",
+                        table.status !== 'vacant' && "bg-muted/60 text-muted-foreground cursor-not-allowed",
+                        table.status === 'vacant' && "hover:border-primary"
+                    )}
+                    onClick={() => {
+                        if (table.status === 'vacant') {
+                            setSelectedTableId(table.id);
+                        } else {
+                            toast({ title: "Table Unavailable", description: `Table ${table.name} is currently ${table.status}.`, variant: "destructive" });
+                        }
+                    }}
+                  >
+                    <CardHeader className="p-3">
+                        <CardTitle className="text-base">{table.name}</CardTitle>
+                        <CardDescription className="text-xs capitalize">{table.status}</CardDescription>
+                    </CardHeader>
+                  </Card>
+                ))}
+                {settings.tables.length === 0 && (
+                  <p className="col-span-full text-center text-muted-foreground py-8">No tables found. Create one to get started.</p>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {!isOrderInfoComplete && orderType !== '' && (
             <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-10">
               <Info className="h-16 w-16 mb-4 text-primary" />
-              <p className="text-xl font-semibold">Order Details Required</p>
-              <p>Please complete the order type and customer information in the right panel to activate the menu.</p>
+              <p className="text-xl font-semibold">Details Required</p>
+              <p>Please complete the required information in the right panel to proceed.</p>
             </div>
-          ) : filteredMenuItems.length > 0 ? (
+          )}
+          
+          {isOrderInfoComplete && filteredMenuItems.length > 0 && (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 xl:grid-cols-3 gap-4">
               {filteredMenuItems.map((item) => (
                 <MenuItemCard key={item.id} item={item} onAddItem={handleAddItem} />
               ))}
             </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-10">
+          )}
+
+          {isOrderInfoComplete && filteredMenuItems.length === 0 && (
+             <div className="flex flex-col items-center justify-center h-full text-muted-foreground py-10">
               <PackageOpen className="h-16 w-16 mb-4" />
               <p className="text-xl font-semibold">No items match your search.</p>
               <p>Try a different search term or category.</p>
             </div>
           )}
+
         </ScrollArea>
       </div>
 
@@ -301,8 +391,20 @@ export default function OrderPage() {
           deliveryCharge={deliveryCharge}
           setDeliveryCharge={setDeliveryCharge}
           isOrderInfoComplete={isOrderInfoComplete}
+          tables={settings.tables}
+          selectedTableId={selectedTableId}
         />
       </div>
+
+      <Dialog open={isCreateTableDialogOpen} onOpenChange={setIsCreateTableDialogOpen}>
+        <DialogContent>
+          <TableForm
+            isOpen={isCreateTableDialogOpen}
+            onClose={() => setIsCreateTableDialogOpen(false)}
+            onSubmit={handleTableCreate}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
