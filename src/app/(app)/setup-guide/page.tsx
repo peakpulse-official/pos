@@ -50,21 +50,29 @@ export default function SetupGuidePage() {
                   <li>Cannot support multiple staff members using the POS simultaneously.</li>
                 </ul>
                 <p><strong>Solution: Implement a Centralized Database.</strong></p>
-                <ol className="list-decimal list-inside space-y-2 pl-4">
+                <ol className="list-decimal list-inside space-y-4 pl-4">
                   <li>
-                    <strong>Choose a Database Service:</strong>
-                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
-                      <li><strong>Cloud Firestore (Recommended with Firebase):</strong> A NoSQL, real-time database that scales well and integrates easily with other Firebase services (like Authentication). Perfect for features like live order status updates. <Link href="https://firebase.google.com/docs/firestore" target="_blank" className="text-primary hover:underline">Learn more about Firestore</Link>.</li>
-                      <li><strong>SQL Databases (e.g., PostgreSQL via Cloud SQL, Supabase, Neon):</strong> Relational databases are excellent for structured data like POS systems.
-                      </li>
+                    <strong>Choose a Database Provider:</strong>
+                    <ul className="list-disc list-inside space-y-2 pl-6 mt-1">
+                      <li><strong>Supabase (Recommended):</strong> Provides a generous free-tier PostgreSQL database, authentication, and auto-generated APIs. It's an excellent all-in-one backend solution. <Link href="https://supabase.com/" target="_blank" className="text-primary hover:underline">Learn more about Supabase</Link>.</li>
+                       <li><strong>Cloud Firestore (Firebase):</strong> A NoSQL, real-time database that scales well and integrates easily with other Firebase services (like Authentication). Perfect for features like live order status updates. <Link href="https://firebase.google.com/docs/firestore" target="_blank" className="text-primary hover:underline">Learn more about Firestore</Link>.</li>
                     </ul>
                   </li>
+                   <li>
+                    <strong>Set Up Environment Variables:</strong>
+                    <p className="mt-1">Never hard-code your database credentials in your application code. Create a file named <code className="bg-muted px-1.5 py-0.5 rounded-sm">.env.local</code> in the root of your project. Your database provider (e.g., Supabase) will give you a connection string or URL. Add it to this file:</p>
+                     <pre className="bg-muted p-2 rounded-md text-xs overflow-x-auto my-1"><code className="language-bash">{
+`# .env.local
+DATABASE_URL="your-supabase-connection-string-goes-here"`}
+                      </code></pre>
+                       <p className="mt-1">Ensure <code className="bg-muted px-1.5 py-0.5 rounded-sm">.env.local</code> is listed in your <code className="bg-muted px-1.5 py-0.5 rounded-sm">.gitignore</code> file to prevent it from being committed to version control.</p>
+                  </li>
                   <li>
-                    <strong>Modify Application Code (Significant Development):</strong> This is a major development task. Replace ALL LocalStorage reads/writes with database operations. This impacts nearly every page, especially menu, orders, tables, and settings.
+                    <strong>Modify Application Code (Significant Development):</strong> This is a major development task. You will need to use a database client library (like <code className="bg-muted px-1.5 py-0.5 rounded-sm">pg</code> for PostgreSQL or an ORM like Drizzle/Prisma) to replace ALL LocalStorage reads/writes with database operations. This impacts nearly every page, especially menu, orders, tables, and settings.
                   </li>
                   <li>
                     <strong>Example Database Schema (SQL):</strong> Plan how your data will be organized.
-                      <p className="mt-1">Example SQL for <code className="bg-muted px-1.5 py-0.5 rounded-sm">orders</code> and <code className="bg-muted px-1.5 py-0.5 rounded-sm">order_items</code> tables (PostgreSQL syntax):</p>
+                      <p className="mt-1">Example SQL for <code className="bg-muted px-1.5 py-0.5 rounded-sm">orders</code> and <code className="bg-muted px-1.5 py-0.5 rounded-sm">order_items</code> tables (PostgreSQL syntax, compatible with Supabase):</p>
                       <pre className="bg-muted p-2 rounded-md text-xs overflow-x-auto my-1"><code className="language-sql">{
 `-- Represents a single customer order
 CREATE TABLE orders (
@@ -118,6 +126,7 @@ CREATE TABLE order_items (
                     <strong>Choose an Authentication Provider:</strong>
                     <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
                       <li><strong>Firebase Authentication (Recommended):</strong> Provides secure sign-in, password resets, etc. <Link href="https://firebase.google.com/docs/auth" target="_blank" className="text-primary hover:underline">Learn more</Link>.</li>
+                      <li><strong>Supabase Auth:</strong> Included with Supabase, works well with its database.</li>
                       <li><strong>NextAuth.js:</strong> Comprehensive open-source solution for Next.js.</li>
                     </ul>
                   </li>
@@ -167,7 +176,7 @@ CREATE TABLE order_items (
                     <strong>Production Kitchen Display System (KDS):</strong>
                       <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
                         <li>For a real kitchen, you need a dedicated KDS screen. This screen would display new orders in real time.</li>
-                        <li>This requires a real-time database like Firestore or implementing WebSockets. When an order's status is updated to 'in_kitchen', it should instantly appear on the KDS.</li>
+                        <li>This requires a real-time database like Firestore or implementing WebSockets with Supabase. When an order's status is updated to 'in_kitchen', it should instantly appear on the KDS.</li>
                         <li>The KDS would allow cooks to mark orders as 'ready', which would then notify waiters or the front counter in real time.</li>
                       </ul>
                   </li>
@@ -184,26 +193,35 @@ CREATE TABLE order_items (
                 <Cloud className="h-7 w-7 text-primary mt-1" />
                 <div>
                   <CardTitle className="font-headline text-xl">4. Production Build & Hosting</CardTitle>
-                  <CardDescription className="mt-1">Taking your app live. Instructions typically found on provider's official documentation website.</CardDescription>
+                  <CardDescription className="mt-1">Taking your app live on platforms like Vercel.</CardDescription>
                 </div>
               </div>
             </AccordionTrigger>
             <AccordionContent className="px-6 pb-6">
               <div className="space-y-3 text-sm">
-                <p>Your app needs a permanent home on the internet accessible to your devices.</p>
-                <ol className="list-decimal list-inside space-y-2 pl-4">
-                   <li>
-                    <strong>Create a Production Build:</strong> Run <code className="bg-muted px-1.5 py-0.5 rounded-sm">npm run build</code>. This creates an optimized version of your app.
+                 <p>Your app needs a permanent home on the internet accessible to your devices.</p>
+                <ol className="list-decimal list-inside space-y-4 pl-4">
+                  <li>
+                    <strong>Push to a Git Repository:</strong>
+                    <p className="mt-1">Hosting providers like Vercel deploy directly from Git. Push your project to a repository on <Link href="https://github.com" target="_blank" className="text-primary hover:underline">GitHub</Link>, GitLab, or Bitbucket.</p>
                   </li>
                   <li>
                     <strong>Choose a Hosting Provider:</strong>
-                    <ul className="list-disc list-inside space-y-1 pl-6 mt-1">
-                      <li><strong>Firebase App Hosting (Recommended):</strong> Supports Next.js server-side features needed for Genkit AI. Your <code className="bg-muted px-1.5 py-0.5 rounded-sm">apphosting.yaml</code> is a starting point.</li>
-                      <li><strong>Vercel:</strong> Created by the makers of Next.js, offers seamless deployment.</li>
+                    <ul className="list-disc list-inside space-y-2 pl-6 mt-1">
+                      <li><strong>Vercel (Recommended for Next.js):</strong> Created by the makers of Next.js, Vercel offers seamless deployment, a generous free tier, and automatically handles build steps. <Link href="https://vercel.com" target="_blank" className="text-primary hover:underline">Learn more</Link>.</li>
+                      <li><strong>Firebase App Hosting:</strong> Also supports Next.js server-side features needed for Genkit AI. Your <code className="bg-muted px-1.5 py-0.5 rounded-sm">apphosting.yaml</code> is a starting point.</li>
                     </ul>
                   </li>
                   <li>
-                    <strong>Deploy Your App:</strong> Follow your chosen provider's official documentation to deploy the production build.
+                    <strong>Deploying to Vercel (Step-by-Step):</strong>
+                     <ol className="list-decimal list-inside space-y-2 pl-6 mt-2">
+                        <li>Sign up on Vercel and connect your Git account (e.g., GitHub).</li>
+                        <li>Create a "New Project" and import your POS application's repository.</li>
+                        <li>Vercel will automatically detect that it's a Next.js project.</li>
+                        <li>Go to the project's "Settings" tab and find "Environment Variables".</li>
+                        <li>Add your <code className="bg-muted px-1.5 py-0.5 rounded-sm">DATABASE_URL</code> and any other secrets from your <code className="bg-muted px-1.5 py-0.5 rounded-sm">.env.local</code> file. This keeps your credentials secure.</li>
+                        <li>Click "Deploy". Vercel will build and host your application. It will automatically redeploy every time you push a change to your main Git branch.</li>
+                    </ol>
                   </li>
                 </ol>
               </div>
@@ -318,3 +336,5 @@ CREATE TABLE order_items (
     </div>
   )
 }
+
+    
