@@ -12,7 +12,7 @@ import Image from "next/image"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import React from "react";
+import React, { useMemo } from "react";
 
 interface CurrentOrderPanelProps {
   orderItems: OrderItem[]
