@@ -3,7 +3,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
-import { categories, menuItems as defaultMenuItems } from "@/lib/data"
+import { menuItems as defaultMenuItems } from "@/lib/data"
 import type { MenuItem as MenuItemType, OrderItem, MenuCategory, Order, OrderType } from "@/lib/types"
 import { MenuItemCard } from "@/components/order/MenuItemCard"
 import { CurrentOrderPanel } from "@/components/order/CurrentOrderPanel"
@@ -15,6 +15,7 @@ import { Search, PackageOpen, Info } from "lucide-react"
 import { useSettings } from "@/contexts/SettingsContext" 
 import { Skeleton } from "@/components/ui/skeleton"
 import { Card } from "@/components/ui/card"
+import { DynamicIcon } from "@/components/DynamicIcon"
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
@@ -24,7 +25,7 @@ export default function OrderPage() {
   const [allMenuItems, setAllMenuItems] = useState<MenuItemType[]>([]);
   const [isLoadingMenuItems, setIsLoadingMenuItems] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
-  const [activeTab, setActiveTab] = useState<string>(categories[0]?.id || "all")
+  const [activeTab, setActiveTab] = useState<string>("all")
   
   const [orderType, setOrderType] = useState<OrderType | ''>(''); 
   const [customerName, setCustomerName] = useState('');
@@ -247,9 +248,9 @@ export default function OrderPage() {
             <ScrollArea orientation="horizontal" className="pb-2">
             <TabsList className="bg-transparent p-0">
               <TabsTrigger value="all" className="text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!isOrderInfoComplete}>All Items</TabsTrigger>
-              {categories.map((category: MenuCategory) => (
+              {settings.categories.map((category: MenuCategory) => (
                 <TabsTrigger key={category.id} value={category.id} className="text-sm data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-md" disabled={!isOrderInfoComplete}>
-                  {category.icon && <category.icon className="mr-2 h-4 w-4" />}
+                  {category.iconName && <DynamicIcon name={category.iconName} className="mr-2 h-4 w-4" />}
                   {category.name}
                 </TabsTrigger>
               ))}
