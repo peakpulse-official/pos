@@ -49,7 +49,8 @@ export const initialOrders: Order[] = [
     serviceChargeRate: 0.10,
     serviceCharge: ((200 * 1) + (100 * 2)) * 0.10,
     total: ((200 * 1) + (100 * 2)) * (1 + 0.13 + 0.10), 
-    status: 'paid', 
+    orderStatus: 'completed',
+    paymentStatus: 'paid',
     createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), 
     customerName: 'Hari Sharma',
     paymentMethod: 'cash',
@@ -69,7 +70,8 @@ export const initialOrders: Order[] = [
     serviceChargeRate: 0.10,
     serviceCharge: ((250 * 1) + (400 * 1) + (80 * 2)) * 0.10,
     total: ((250 * 1) + (400 * 1) + (80 * 2)) * (1 + 0.13 + 0.10),
-    status: 'completed', 
+    orderStatus: 'in_kitchen',
+    paymentStatus: 'paid',
     createdAt: new Date(Date.now() - 1 * 60 * 60 * 1000).toISOString(), 
     customerName: 'Sita Rai',
     orderType: 'takeout',
@@ -78,8 +80,8 @@ export const initialOrders: Order[] = [
 
 export const mockDailySales: DailySales = {
   date: new Date().toISOString().split('T')[0],
-  totalRevenue: initialOrders.reduce((sum, order) => sum + (order.status === 'paid' ? order.total : 0), 0),
-  totalOrders: initialOrders.filter(order => order.status === 'paid').length,
+  totalRevenue: initialOrders.reduce((sum, order) => sum + (order.paymentStatus === 'paid' ? order.total : 0), 0),
+  totalOrders: initialOrders.filter(order => order.paymentStatus === 'paid').length,
   popularItems: [
     { itemId: 'item2', name: 'Latte', quantitySold: 10, revenue: 2000 },
     { itemId: 'item5', name: 'Chicken Mo:Mo (Steamed)', quantitySold: 8, revenue: 2000 },

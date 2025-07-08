@@ -23,6 +23,9 @@ export interface OrderItem extends MenuItem {
 }
 
 export type OrderType = 'dine-in' | 'takeout' | 'delivery';
+export type OrderStatus = 'pending' | 'confirmed' | 'in_kitchen' | 'ready' | 'completed' | 'cancelled';
+export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
+
 
 export interface Order {
   id: string;
@@ -34,7 +37,8 @@ export interface Order {
   serviceCharge: number; // Service charge amount
   serviceChargeRate: number; // Service charge rate at time of order
   deliveryCharge?: number; // Optional delivery charge
-  status: 'pending' | 'completed' | 'paid' | 'cancelled';
+  orderStatus: OrderStatus;
+  paymentStatus: PaymentStatus;
   createdAt: string; // ISO string for date
   orderNumber: string;
   customerName?: string;

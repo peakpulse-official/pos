@@ -21,7 +21,8 @@ import {
   LogOut as LogOutIcon, 
   CalendarCheck, 
   UserCircle,
-  LayoutDashboard, // Added for Dashboard
+  LayoutDashboard,
+  Package, // Added for All Orders page
 } from "lucide-react"
 import {
   Sidebar,
@@ -41,10 +42,11 @@ import { useToast } from "@/hooks/use-toast"
 
 
 const navItemsBase = [
-  { href: "/order", label: "Order", icon: ShoppingCart, roles: ['Admin', 'Manager', 'Waiter'] },
+  { href: "/order", label: "Take Order", icon: ShoppingCart, roles: ['Admin', 'Manager', 'Waiter'] },
+  { href: "/orders", label: "All Orders", icon: Package, roles: ['Admin', 'Manager'] },
   { href: "/menu", label: "Menu", icon: BookOpenText, roles: ['Admin', 'Manager', 'Waiter'] },
   { href: "/billing", label: "Billing", icon: Printer, roles: ['Admin', 'Manager', 'Waiter'] },
-  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager', 'Waiter'] }, 
+  { href: "/floor-plan", label: "Floor Plan", icon: LayoutGrid, roles: ['Admin', 'Manager'] }, 
   { href: "/waiter-view", label: "Waiter View", icon: Clipboard, roles: ['Waiter', 'Manager'] }, 
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, roles: ['Manager', 'Waiter'] }, 
   { href: "/reports", label: "Reports", icon: BarChart3, roles: ['Admin', 'Manager'] },

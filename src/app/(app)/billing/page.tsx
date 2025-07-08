@@ -1,9 +1,10 @@
+
 // src/app/(app)/billing/page.tsx
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
 import { initialOrders as defaultInitialOrders } from "@/lib/data" // Keep as fallback/seed
-import type { Order, Bill } from "@/lib/types"
+import type { Order, Bill, OrderStatus, PaymentStatus } from "@/lib/types"
 import { BillDisplay } from "@/components/billing/BillDisplay"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,14 +29,11 @@ export default function BillingPage() {
       if (storedOrders) {
         setOrders(JSON.parse(storedOrders));
       } else {
-        // Optional: Seed with default orders if localStorage is empty
-        // setOrders(defaultInitialOrders); 
-        // localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(defaultInitialOrders));
-        setOrders([]); // Or start with an empty list
+        setOrders([]);
       }
     } catch (error) {
       console.error("Failed to load orders from localStorage", error);
-      setOrders([]); // Fallback to empty or defaultInitialOrders
+      setOrders([]);
     }
     setIsLoading(false);
   }, []);
@@ -58,19 +56,32 @@ export default function BillingPage() {
     return orders.filter(order => 
       order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (order.customerName && order.customerName.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      order.status.toLowerCase().includes(searchTerm.toLowerCase())
+      order.orderStatus.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.paymentStatus.toLowerCase().includes(searchTerm.toLowerCase())
     ).sort((a,b) => parseISO(b.createdAt).getTime() - parseISO(a.createdAt).getTime());
   }, [orders, searchTerm])
 
-  const getStatusBadgeVariant = (status: Order['status']): "default" | "secondary" | "destructive" | "outline" => {
+  const getOrderStatusBadgeVariant = (status: OrderStatus): "default" | "secondary" | "destructive" | "outline" => {
     switch(status) {
-      case 'paid': return 'default'; 
-      case 'completed': return 'secondary';
+      case 'completed': return 'default';
+      case 'confirmed': return 'secondary';
+      case 'in_kitchen': return 'secondary';
+      case 'ready': return 'secondary';
       case 'pending': return 'outline';
       case 'cancelled': return 'destructive';
       default: return 'outline';
     }
   }
+
+  const getPaymentStatusBadgeVariant = (status: PaymentStatus): "default" | "secondary" | "destructive" | "outline" => {
+    switch(status) {
+      case 'paid': return 'default';
+      case 'unpaid': return 'destructive';
+      case 'refunded': return 'outline';
+      default: return 'outline';
+    }
+  }
+
 
   if (isLoading) {
     return (
@@ -131,9 +142,12 @@ export default function BillingPage() {
                         onClick={() => handleSelectOrder(order)}
                       >
                         <div className="w-full">
-                            <div className="flex justify-between items-center mb-1">
+                            <div className="flex justify-between items-start mb-1 gap-2">
                                 <span className="font-semibold text-sm">{order.orderNumber}</span>
-                                <Badge variant={getStatusBadgeVariant(order.status)} className="text-xs">{order.status.toUpperCase()}</Badge>
+                                <div className="flex flex-col items-end gap-1">
+                                  <Badge variant={getOrderStatusBadgeVariant(order.orderStatus)} className="text-xs">{order.orderStatus.replace("_", " ").toUpperCase()}</Badge>
+                                  <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)} className="text-xs">{order.paymentStatus.toUpperCase()}</Badge>
+                                </div>
                             </div>
                             {order.customerName && <p className="text-xs text-muted-foreground">{order.customerName}</p>}
                             <p className="text-xs text-muted-foreground">{format(parseISO(order.createdAt), "MMM d, yyyy h:mm a")}</p>

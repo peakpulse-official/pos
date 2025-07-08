@@ -41,7 +41,7 @@ export default function ReportsPage() {
     try {
       const storedOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
       const orders: Order[] = storedOrdersRaw ? JSON.parse(storedOrdersRaw) : [];
-      setLocalStorageOrders(orders.filter(order => order.status === 'paid')); // Only use paid orders
+      setLocalStorageOrders(orders.filter(order => order.paymentStatus === 'paid')); // Only use paid orders
       
       const now = new Date();
       setCurrentMonthName(format(now, "MMMM yyyy"));
@@ -134,7 +134,7 @@ export default function ReportsPage() {
         <Info className="h-5 w-5 text-primary" />
         <AlertTitle className="font-semibold text-primary/90">Data Source Note</AlertTitle>
         <AlertDescription className="text-primary/80">
-          All sales data presented here is derived from 'paid' orders recorded in the application's local storage. 
+          All sales data presented here is derived from orders with a 'paid' payment status, recorded in the application's local storage. 
           This primarily includes takeout and delivery orders. Dine-in table orders are managed separately in this prototype.
         </AlertDescription>
       </Alert>
@@ -235,4 +235,3 @@ export default function ReportsPage() {
     </div>
   )
 }
-
