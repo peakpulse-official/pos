@@ -2,7 +2,7 @@
 // src/components/waiter-view/WaiterTableCard.tsx
 "use client";
 
-import type { TableDefinition, UserAccount, TableStatus, Bill, OrderItem } from "@/lib/types";
+import type { TableDefinition, UserAccount, TableStatus, Bill, OrderItem, Order } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,6 +31,7 @@ import {
   DropdownMenuRadioItem,
 } from "@/components/ui/dropdown-menu";
 
+const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
 
 interface WaiterTableCardProps {
   table: TableDefinition;
@@ -71,15 +72,19 @@ export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTable
   };
   
   const handleStatusChange = (newStatus: TableStatus) => {
-    updateTable(table.id, { status: newStatus });
     if (newStatus === 'vacant') {
       clearMockOrderFromTable(table.id); 
-      updateTable(table.id, { waiterId: null });
+      updateTable(table.id, { waiterId: null, status: 'vacant' });
     } else if (newStatus === 'needs_cleaning') {
        clearMockOrderFromTable(table.id);
+       updateTable(table.id, { status: 'needs_cleaning' });
     } else if (newStatus === 'occupied' && !table.currentOrderItems) {
       assignMockOrderToTable(table.id);
+      updateTable(table.id, { status: 'occupied' });
+    } else {
+      updateTable(table.id, { status: newStatus });
     }
+
     toast({ title: `Table ${table.name} status updated to ${statusConfig[newStatus].label}.` });
   };
   
@@ -94,19 +99,51 @@ export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTable
         undefined, undefined, undefined,
         table.isModified
     );
-    setBillDialogContent({ billData: adHocBill, isKitchen });
-    setShowBillDialog(true);
-    toast({ title: `${isKitchen ? "Kitchen Order" : "Bill"} ready for table ${table.name}` });
 
-    // Lock the table for the waiter when the final bill is prepared.
-    if (!isKitchen && table.status === 'occupied') {
-        updateTable(table.id, { status: 'needs_bill' });
-        toast({ title: "Table status updated", description: "Order finalized. Awaiting payment." });
-    }
-    
-    // After printing KOT, reset modified flag so it doesn't show on subsequent prints
-    if (isKitchen && table.isModified) {
-        updateTable(table.id, { isModified: false });
+    if (!isKitchen) {
+      const { subtotal, vat, serviceCharge, total } = adHocBill;
+      const newOrder: Order = {
+        id: `order${Date.now()}`,
+        tableId: table.id,
+        orderNumber: `ORD-${Date.now().toString().slice(-6)}`,
+        items: itemsToDisplay,
+        subtotal,
+        vat,
+        serviceCharge,
+        total,
+        vatRate: settings.vatRate,
+        serviceChargeRate: settings.serviceChargeRate,
+        orderStatus: 'completed',
+        paymentStatus: 'unpaid',
+        createdAt: new Date().toISOString(),
+        orderType: 'dine-in',
+        customerName: `Table ${table.name}`,
+      };
+
+      try {
+        const existingOrdersRaw = localStorage.getItem(ORDERS_STORAGE_KEY);
+        const existingOrders: Order[] = existingOrdersRaw ? JSON.parse(existingOrdersRaw) : [];
+        const updatedOrders = [newOrder, ...existingOrders];
+        localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+        
+        updateTable(table.id, { status: 'needs_bill', orderId: newOrder.id });
+        toast({ title: "Bill Finalized", description: "Table awaiting payment. View in Billing page." });
+
+        const finalBillData = { ...adHocBill, billNumber: `BILL-${newOrder.orderNumber}` };
+        setBillDialogContent({ billData: finalBillData, isKitchen: false });
+        setShowBillDialog(true);
+      } catch (error) {
+        console.error("Failed to save order:", error);
+        toast({ title: "Error", description: "Could not save order to local storage.", variant: "destructive"});
+      }
+
+    } else {
+      setBillDialogContent({ billData: adHocBill, isKitchen: true });
+      setShowBillDialog(true);
+      toast({ title: `Kitchen Order sent for table ${table.name}` });
+      if (table.isModified) {
+          updateTable(table.id, { isModified: false });
+      }
     }
   };
 
@@ -181,7 +218,7 @@ export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTable
               <Button onClick={() => prepareAndShowBill(true)} variant="outline" size="sm" className="w-full">
                 <Send className="mr-2 h-4 w-4" /> Send Order to Kitchen
               </Button>
-              <Button onClick={() => prepareAndShowBill(false)} variant="default" size="sm" className="w-full">
+              <Button onClick={() => prepareAndShowBill(false)} variant="default" size="sm" className="w-full" disabled={table.status === 'needs_bill'}>
                 <Receipt className="mr-2 h-4 w-4" /> Finalize & Print Bill
               </Button>
             </>

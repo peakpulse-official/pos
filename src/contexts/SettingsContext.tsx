@@ -34,7 +34,7 @@ interface SettingsContextType {
   updateUser: (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string, hourlyRate?: number }) => void;
   removeUser: (userId: string) => void;
   // Tables
-  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>) => TableDefinition;
+  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId' | 'orderId'>) => TableDefinition;
   updateTable: (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => void;
   removeTable: (tableId: string) => void;
   assignMockOrderToTable: (tableId: string) => void;
@@ -74,6 +74,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const tablesList = (parsedSettings.tables && Array.isArray(parsedSettings.tables) ? parsedSettings.tables : defaultAppSettings.tables || []).map((table: TableDefinition) => ({
         ...table,
         shape: table.shape || 'rectangle',
+        orderId: table.orderId || null,
         currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined),
         isModified: table.isModified || false,
       }));
@@ -318,11 +319,12 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Table Management
-  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>): TableDefinition => {
+  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId' | 'orderId'>): TableDefinition => {
     const newTable: TableDefinition = {
       ...tableData,
       id: `table-${Date.now()}`,
       status: 'vacant',
+      orderId: null,
       currentOrderItems: undefined,
       notes: "",
       waiterId: null,
@@ -364,7 +366,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const clearMockOrderFromTable = (tableId: string) => {
      const updatedTables = settings.tables.map(t =>
-      t.id === tableId ? { ...t, currentOrderItems: undefined } : t
+      t.id === tableId ? { ...t, currentOrderItems: undefined, orderId: null } : t
     );
     updateSettings({ tables: updatedTables });
   };

@@ -14,6 +14,8 @@ import { Badge } from "@/components/ui/badge"
 import { format, parseISO } from "date-fns"
 import { Search, ListOrdered, FileText } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useSettings } from "@/contexts/SettingsContext"
+import { useToast } from "@/hooks/use-toast"
 
 const ORDERS_STORAGE_KEY = "annapurnaPosOrders";
 
@@ -22,6 +24,9 @@ export default function BillingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedBill, setSelectedBill] = useState<Bill | null>(null)
   const [searchTerm, setSearchTerm] = useState("")
+  const { updateTable } = useSettings();
+  const { toast } = useToast();
+
 
   useEffect(() => {
     try {
@@ -51,6 +56,30 @@ export default function BillingPage() {
     const bill = generateBill(order)
     setSelectedBill(bill)
   }
+  
+  const handleMarkAsPaid = (orderId: string) => {
+    const orderToUpdate = orders.find(o => o.id === orderId);
+    if (!orderToUpdate) return;
+
+    const updatedOrders = orders.map(o => 
+        o.id === orderId ? { ...o, paymentStatus: 'paid' as PaymentStatus } : o
+    );
+    setOrders(updatedOrders);
+    localStorage.setItem(ORDERS_STORAGE_KEY, JSON.stringify(updatedOrders));
+    
+    // If it was a dine-in order, update the table status
+    if (orderToUpdate.tableId) {
+        updateTable(orderToUpdate.tableId, { 
+            status: 'needs_cleaning', 
+            waiterId: null, 
+            orderId: null,
+            currentOrderItems: undefined,
+        });
+    }
+
+    toast({ title: "Payment Recorded", description: `Order ${orderToUpdate.orderNumber} marked as paid.` });
+    setSelectedBill(null); // Deselect the bill after action
+  };
 
   const filteredOrders = useMemo(() => {
     return orders.filter(order => 
@@ -179,7 +208,7 @@ export default function BillingPage() {
       </div>
       <div className="md:col-span-2">
         {selectedBill ? (
-          <BillDisplay bill={selectedBill} />
+          <BillDisplay bill={selectedBill} onMarkAsPaid={handleMarkAsPaid} />
         ) : (
           <Card className="flex flex-col items-center justify-center min-h-[400px] text-center shadow-lg h-full">
             <CardHeader>

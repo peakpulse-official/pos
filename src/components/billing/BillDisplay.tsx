@@ -2,7 +2,7 @@
 // src/components/billing/BillDisplay.tsx
 "use client"
 
-import type { Bill, OrderItem, OrderType } from "@/lib/types"
+import type { Bill, OrderItem, OrderType, PaymentStatus } from "@/lib/types"
 import { useSettings } from "@/contexts/SettingsContext"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
@@ -12,14 +12,15 @@ import { format } from "date-fns"
 import { Skeleton } from "@/components/ui/skeleton"
 
 interface BillDisplayProps {
-  bill: Bill | null 
+  bill: Bill | null
   onPrint?: () => void
-  isKitchenCopy?: boolean 
-  title?: string 
+  onMarkAsPaid?: (orderId: string) => void
+  isKitchenCopy?: boolean
+  title?: string
 }
 
 export const generateAdHocBillStructure = (
-  items: OrderItem[], 
+  items: OrderItem[],
   settings: ReturnType<typeof useSettings>['settings'],
   orderNumber?: string,
   customerName?: string,
@@ -56,10 +57,10 @@ export const generateAdHocBillStructure = (
 };
 
 
-export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: BillDisplayProps) {
+export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title, onMarkAsPaid }: BillDisplayProps) {
   const { settings, isLoading: settingsLoading } = useSettings();
 
-  if (!bill && !isKitchenCopy) { 
+  if (!bill && !isKitchenCopy) {
     return (
       <Card className="flex flex-col items-center justify-center min-h-[400px] text-center shadow-lg md:max-w-md mx-auto">
         <CardHeader>
@@ -71,11 +72,11 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
       </Card>
     )
   }
-  
-  const displayData = bill; 
 
-  if (!displayData) { 
-     return <p>Error: Bill data is missing.</p>;
+  const displayData = bill;
+
+  if (!displayData) {
+    return <p>Error: Bill data is missing.</p>;
   }
 
 
@@ -185,6 +186,11 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
         <Button onClick={handlePrint} className="w-full max-w-xs" variant="default" size="sm" disabled={settingsLoading}>
           <Printer className="mr-2 h-4 w-4" /> {isKitchenCopy ? "Print KOT" : "Print Bill"}
         </Button>
+        {bill && bill.paymentStatus === 'unpaid' && onMarkAsPaid && (
+          <Button onClick={() => onMarkAsPaid(bill.id)} className="w-full max-w-xs mt-2" variant="default">
+              <DollarSign className="mr-2 h-4 w-4" /> Mark as Paid & Clear Table
+          </Button>
+        )}
         {!isKitchenCopy && 
             <p className="text-xs text-muted-foreground text-center mt-1">
             (Uses browser print. For POS thermal printing, see Setup Guide.)

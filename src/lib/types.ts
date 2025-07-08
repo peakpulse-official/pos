@@ -29,6 +29,7 @@ export type PaymentStatus = 'unpaid' | 'paid' | 'refunded';
 
 export interface Order {
   id: string;
+  tableId?: string; // Link back to the table
   items: OrderItem[];
   total: number;
   subtotal: number;
@@ -48,7 +49,7 @@ export interface Order {
   deliveryAddress?: string;
 }
 
-export interface Bill extends Omit<Order, 'orderStatus' | 'paymentStatus'> {
+export interface Bill extends Omit<Order, 'orderStatus'> {
   billNumber: string;
   printedAt: string; // ISO string for date
   isModified?: boolean; // For KOT to show if order was updated
@@ -109,6 +110,7 @@ export interface TableDefinition {
   shape: TableShape;
   status: TableStatus;
   waiterId?: string | null; 
+  orderId?: string | null; // Link to the created order
   notes?: string;
   currentOrderItems?: OrderItem[]; 
   isModified?: boolean;
