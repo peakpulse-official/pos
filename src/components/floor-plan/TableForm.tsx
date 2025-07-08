@@ -1,3 +1,4 @@
+
 // src/components/floor-plan/TableForm.tsx
 "use client"
 
@@ -23,11 +24,13 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { useEffect } from "react"
 
 const tableSchema = z.object({
   name: z.string().min(1, "Table name/number is required."),
   capacity: z.coerce.number().int().min(1, "Capacity must be at least 1."),
+  shape: z.enum(["rectangle", "square", "circle"], { required_error: "Please select a shape." }),
 })
 
 type TableFormValues = z.infer<typeof tableSchema>
@@ -43,25 +46,25 @@ export function TableForm({ isOpen, onClose, onSubmit, initialData }: TableFormP
   const form = useForm<TableFormValues>({
     resolver: zodResolver(tableSchema),
     defaultValues: {
-      name: initialData?.name || "",
-      capacity: initialData?.capacity || 2,
+      name: "",
+      capacity: 2,
+      shape: "rectangle",
     },
   })
 
   useEffect(() => {
-    if (initialData) {
+    if (isOpen) {
       form.reset({
-        name: initialData.name,
-        capacity: initialData.capacity,
+        name: initialData?.name || "",
+        capacity: initialData?.capacity || 2,
+        shape: initialData?.shape || 'rectangle',
       })
-    } else {
-      form.reset({ name: "", capacity: 2 })
     }
-  }, [initialData, form, isOpen]) // Reset form when dialog opens or initialData changes
+  }, [initialData, form, isOpen])
 
   const handleFormSubmit = (values: TableFormValues) => {
     onSubmit(values)
-    form.reset() // Reset after successful submission
+    form.reset() 
   }
 
   return (
@@ -95,6 +98,37 @@ export function TableForm({ isOpen, onClose, onSubmit, initialData }: TableFormP
                   <FormLabel>Capacity</FormLabel>
                   <FormControl>
                     <Input type="number" placeholder="e.g., 4" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+             <FormField
+              control={form.control}
+              name="shape"
+              render={({ field }) => (
+                <FormItem className="space-y-2">
+                  <FormLabel>Table Shape</FormLabel>
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      value={field.value}
+                      className="flex flex-row space-x-4"
+                    >
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="rectangle" /></FormControl>
+                        <FormLabel className="font-normal">Rectangle</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="square" /></FormControl>
+                        <FormLabel className="font-normal">Square</FormLabel>
+                      </FormItem>
+                      <FormItem className="flex items-center space-x-2 space-y-0">
+                        <FormControl><RadioGroupItem value="circle" /></FormControl>
+                        <FormLabel className="font-normal">Circle</FormLabel>
+                      </FormItem>
+                    </RadioGroup>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

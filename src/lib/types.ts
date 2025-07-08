@@ -99,11 +99,13 @@ export interface TimeLog {
 }
 
 export type TableStatus = 'vacant' | 'occupied' | 'needs_bill' | 'needs_cleaning';
+export type TableShape = 'rectangle' | 'square' | 'circle';
 
 export interface TableDefinition {
   id: string;
   name: string; 
   capacity: number;
+  shape: TableShape;
   status: TableStatus;
   waiterId?: string | null; 
   notes?: string;

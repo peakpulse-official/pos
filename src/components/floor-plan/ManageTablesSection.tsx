@@ -1,3 +1,4 @@
+
 // src/components/floor-plan/ManageTablesSection.tsx
 "use client"
 
@@ -23,7 +24,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
 
 export function ManageTablesSection() {
-  const { settings, addTable, updateTable, removeTable } = useSettings()
+  const { settings, addTable, updateTable, removeTable, currentUser } = useSettings()
   const [isTableFormOpen, setIsTableFormOpen] = useState(false)
   const [editingTable, setEditingTable] = useState<TableDefinition | undefined>(undefined)
   const [tableToDelete, setTableToDelete] = useState<TableDefinition | null>(null)
@@ -35,7 +36,10 @@ export function ManageTablesSection() {
       toast({ title: "Table Updated", description: `${data.name} has been updated.` })
     } else {
       addTable(data)
-      toast({ title: "Table Added", description: `${data.name} has been added.` })
+      const toastMessage = currentUser?.role === 'Waiter'
+        ? `${data.name} created and assigned to you.`
+        : `${data.name} has been added.`
+      toast({ title: "Table Added", description: toastMessage })
     }
     setIsTableFormOpen(false)
     setEditingTable(undefined)
@@ -88,6 +92,7 @@ export function ManageTablesSection() {
                 <TableRow>
                   <TableHead>Name/Number</TableHead>
                   <TableHead>Capacity</TableHead>
+                  <TableHead>Shape</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Assigned Waiter</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -95,13 +100,14 @@ export function ManageTablesSection() {
               </TableHeader>
               <TableBody>
                 {settings.tables.map((table) => {
-                  const assignedWaiter = settings.waiters.find(w => w.id === table.waiterId);
+                  const assignedWaiter = settings.users.find(w => w.id === table.waiterId);
                   return (
                     <TableRow key={table.id}>
                       <TableCell className="font-medium">{table.name}</TableCell>
                       <TableCell>{table.capacity}</TableCell>
+                      <TableCell className="capitalize">{table.shape}</TableCell>
                       <TableCell><Badge variant={getStatusBadgeVariant(table.status)}>{table.status.replace("_", " ").toUpperCase()}</Badge></TableCell>
-                      <TableCell>{assignedWaiter ? assignedWaiter.name : <span className="text-muted-foreground italic">Unassigned</span>}</TableCell>
+                      <TableCell>{assignedWaiter ? assignedWaiter.username : <span className="text-muted-foreground italic">Unassigned</span>}</TableCell>
                       <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleEditTable(table)} className="mr-2">
                           <Edit className="h-4 w-4" />

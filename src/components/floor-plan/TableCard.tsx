@@ -70,7 +70,12 @@ export function TableCard({ table, waiters }: TableCardProps) {
   return (
     <Card className={cn(
         "shadow-md hover:shadow-lg transition-shadow border-l-4",
-        currentStatusDetails.borderClass
+        currentStatusDetails.borderClass,
+        {
+          'rounded-lg': table.shape === 'rectangle',
+          'rounded-md': table.shape === 'square',
+          'rounded-3xl': table.shape === 'circle',
+        }
       )}>
       <CardHeader className="pb-2 pt-3 px-3">
         <div className="flex justify-between items-center">
@@ -80,7 +85,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
             {currentStatusDetails.label}
           </Badge>
         </div>
-        <CardDescription className="text-xs">Capacity: {table.capacity}</CardDescription>
+        <CardDescription className="text-xs">Capacity: {table.capacity} | Shape: <span className="capitalize">{table.shape}</span></CardDescription>
       </CardHeader>
       <CardContent className="py-2 px-3 space-y-2">
          <div className="flex items-center text-xs text-muted-foreground">

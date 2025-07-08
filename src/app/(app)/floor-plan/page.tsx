@@ -17,9 +17,6 @@ export default function FloorPlanPage() {
   const { settings, isLoading: settingsLoading, currentUser } = useSettings();
   const [activeTab, setActiveTab] = useState("view")
 
-  const isAdminOrManager = currentUser?.role === 'Admin' || currentUser?.role === 'Manager';
-  
-
   if (settingsLoading || !currentUser) {
     return (
       <div className="space-y-6">

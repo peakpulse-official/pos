@@ -34,7 +34,7 @@ interface SettingsContextType {
   updateUser: (userId: string, updates: Partial<Omit<UserAccount, 'id' | 'password'>> & { password?: string, hourlyRate?: number }) => void;
   removeUser: (userId: string) => void;
   // Tables
-  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes'>) => void;
+  addTable: (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>) => void;
   updateTable: (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => void;
   removeTable: (tableId: string) => void;
   assignMockOrderToTable: (tableId: string) => void;
@@ -73,6 +73,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       
       const tablesList = (parsedSettings.tables && Array.isArray(parsedSettings.tables) ? parsedSettings.tables : defaultAppSettings.tables || []).map((table: TableDefinition) => ({
         ...table,
+        shape: table.shape || 'rectangle',
         currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined)
       }));
 
@@ -325,7 +326,18 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       notes: "",
       waiterId: null,
     };
-    updateSettings({ tables: [...settings.tables, newTable] });
+    
+    if (currentUser && currentUser.role === 'Waiter') {
+      newTable.status = 'occupied';
+      newTable.waiterId = currentUser.id;
+    }
+    
+    const allTables = [...settings.tables, newTable];
+    updateSettings({ tables: allTables });
+
+    if (newTable.status === 'occupied') {
+      assignMockOrderToTable(newTable.id);
+    }
   };
 
   const updateTable = (tableId: string, updates: Partial<Omit<TableDefinition, 'id'>>) => {
