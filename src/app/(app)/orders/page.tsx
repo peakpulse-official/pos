@@ -140,8 +140,8 @@ export default function OrdersPage() {
                       <TableCell>{format(parseISO(order.createdAt), "MMM d, h:mm a")}</TableCell>
                       <TableCell>{order.total.toFixed(2)}</TableCell>
                       <TableCell>
-                          <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus)}>
-                              {order.paymentStatus.toUpperCase()}
+                          <Badge variant={getPaymentStatusBadgeVariant(order.paymentStatus || 'unpaid')}>
+                              {(order.paymentStatus || 'unpaid').toUpperCase()}
                           </Badge>
                       </TableCell>
                       <TableCell>
