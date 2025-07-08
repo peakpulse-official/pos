@@ -51,6 +51,7 @@ export interface Order {
 export interface Bill extends Omit<Order, 'orderStatus' | 'paymentStatus'> {
   billNumber: string;
   printedAt: string; // ISO string for date
+  isModified?: boolean; // For KOT to show if order was updated
 }
 
 
@@ -110,6 +111,7 @@ export interface TableDefinition {
   waiterId?: string | null; 
   notes?: string;
   currentOrderItems?: OrderItem[]; 
+  isModified?: boolean;
 }
 
 // This is now deprecated and will be removed in future steps.

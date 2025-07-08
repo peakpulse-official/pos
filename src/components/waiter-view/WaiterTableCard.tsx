@@ -90,11 +90,24 @@ export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTable
         settings, 
         table.name, // orderNumber (table name for KOT)
         `Table ${table.name}`, // customerName
-        'dine-in' // orderType
+        'dine-in', // orderType
+        undefined, undefined, undefined,
+        table.isModified
     );
     setBillDialogContent({ billData: adHocBill, isKitchen });
     setShowBillDialog(true);
     toast({ title: `${isKitchen ? "Kitchen Order" : "Bill"} ready for table ${table.name}` });
+
+    // Lock the table for the waiter when the final bill is prepared.
+    if (!isKitchen && table.status === 'occupied') {
+        updateTable(table.id, { status: 'needs_bill' });
+        toast({ title: "Table status updated", description: "Order finalized. Awaiting payment." });
+    }
+    
+    // After printing KOT, reset modified flag so it doesn't show on subsequent prints
+    if (isKitchen && table.isModified) {
+        updateTable(table.id, { isModified: false });
+    }
   };
 
 

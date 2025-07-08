@@ -27,6 +27,7 @@ export const generateAdHocBillStructure = (
   customerPhone?: string,
   deliveryAddress?: string,
   deliveryCharge?: number,
+  isModified?: boolean,
 ): Omit<Bill, 'id' | 'createdAt' | 'orderStatus' | 'paymentStatus'> => {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const vatAmount = subtotal * settings.vatRate;
@@ -50,6 +51,7 @@ export const generateAdHocBillStructure = (
     orderType: orderType || 'dine-in',
     customerPhone: customerPhone,
     deliveryAddress: deliveryAddress,
+    isModified: isModified,
   };
 };
 
@@ -106,6 +108,9 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
             </div>
             <div className="text-right">
                 <p className="font-semibold text-sm">{billTitle}</p>
+                {isKitchenCopy && displayData.isModified && (
+                  <p className="font-bold text-xs text-destructive animate-pulse">-- ORDER UPDATED --</p>
+                )}
                 <p className="text-xs text-muted-foreground">Bill: {displayData.billNumber}</p>
             </div>
         </div>

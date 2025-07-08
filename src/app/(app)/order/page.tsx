@@ -1,3 +1,4 @@
+
 // src/app/(app)/order/page.tsx
 "use client"
 
@@ -88,22 +89,32 @@ export default function OrderPage() {
   
   const canEditOrder = useMemo(() => {
     if (!currentUser) return false;
-    // For non-dine-in, it's always editable
+    // For non-dine-in, it's always editable before order placement
     if (orderType !== 'dine-in') return true;
     
-    // For dine-in, check table status and permissions
     if (selectedTable) {
-        if (selectedTable.status === 'vacant') return true; // new order for vacant table is editable
-        if (currentUser.role === 'Admin' || currentUser.role === 'Manager') return true;
-        if (currentUser.role === 'Waiter' && selectedTable.waiterId === currentUser.id) return true;
+        // Can always start an order on a vacant table
+        if (selectedTable.status === 'vacant') return true;
+
+        // Admins and Managers can edit occupied or needs_bill tables.
+        if (currentUser.role === 'Admin' || currentUser.role === 'Manager') {
+          return selectedTable.status === 'occupied' || selectedTable.status === 'needs_bill';
+        }
+
+        // Waiters can ONLY edit tables that are 'occupied' and assigned to them.
+        if (currentUser.role === 'Waiter') {
+            return selectedTable.status === 'occupied' && selectedTable.waiterId === currentUser.id;
+        }
     }
-    // If no table is selected for dine-in, or if user doesn't have perms, not editable
+    
     return false;
   }, [currentUser, orderType, selectedTable]);
 
   const isUserAllowedToSelect = (table: TableDefinition): boolean => {
     if (!currentUser) return false;
     if (table.status === 'vacant') return true;
+
+    // Allow selecting occupied/needs_bill tables to view/edit order based on permissions
     if (table.status === 'occupied' || table.status === 'needs_bill') {
         if (currentUser.role === 'Admin' || currentUser.role === 'Manager') return true;
         if (currentUser.role === 'Waiter' && table.waiterId === currentUser.id) return true;
@@ -135,6 +146,10 @@ export default function OrderPage() {
         description: "Please select an order type and fill in the required details before adding items.",
         variant: "destructive"
       });
+      return;
+    }
+    if (!canEditOrder) {
+      toast({ title: "Order Locked", description: "This order cannot be edited.", variant: "destructive" });
       return;
     }
     setCurrentOrder((prevOrder) => {
@@ -196,6 +211,10 @@ export default function OrderPage() {
       toast({ title: "Cannot Place Order", description: "Check that order details are complete and items have been added.", variant: "destructive" });
       return;
     }
+     if (!canEditOrder) {
+      toast({ title: "Order Locked", description: "This order cannot be edited.", variant: "destructive" });
+      return;
+    }
 
     if (orderType === 'dine-in') {
         if (!selectedTableId || !currentUser || !selectedTable) {
@@ -204,10 +223,13 @@ export default function OrderPage() {
         }
         
         const isNewOccupation = selectedTable.status === 'vacant';
+        const isEdit = selectedTable.status === 'occupied';
+
         updateTable(selectedTableId, {
             status: 'occupied',
             waiterId: isNewOccupation ? currentUser.id : selectedTable.waiterId,
             currentOrderItems: currentOrder, // Replace with the current order state
+            isModified: isEdit,
         });
 
         toast({ title: "Order Sent!", description: `Order for table ${selectedTable.name} sent to the kitchen.` });

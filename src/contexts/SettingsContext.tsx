@@ -1,3 +1,4 @@
+
 // src/contexts/SettingsContext.tsx
 "use client"
 
@@ -73,7 +74,8 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       const tablesList = (parsedSettings.tables && Array.isArray(parsedSettings.tables) ? parsedSettings.tables : defaultAppSettings.tables || []).map((table: TableDefinition) => ({
         ...table,
         shape: table.shape || 'rectangle',
-        currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined)
+        currentOrderItems: table.currentOrderItems || (table.status === 'occupied' ? MOCK_WAITER_ORDER_ITEMS : undefined),
+        isModified: table.isModified || false,
       }));
 
       const timeLogsList = (parsedSettings.timeLogs && Array.isArray(parsedSettings.timeLogs) ? parsedSettings.timeLogs : defaultAppSettings.timeLogs || []).map((log: TimeLog) => ({
@@ -324,6 +326,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       currentOrderItems: undefined,
       notes: "",
       waiterId: null,
+      isModified: false,
     };
     
     if (currentUser && currentUser.role === 'Waiter') {
