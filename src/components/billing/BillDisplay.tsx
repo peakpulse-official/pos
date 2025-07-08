@@ -27,7 +27,7 @@ export const generateAdHocBillStructure = (
   customerPhone?: string,
   deliveryAddress?: string,
   deliveryCharge?: number,
-): Omit<Bill, 'id' | 'createdAt' | 'status'> => {
+): Omit<Bill, 'id' | 'createdAt' | 'orderStatus' | 'paymentStatus'> => {
   const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const vatAmount = subtotal * settings.vatRate;
   const serviceChargeAmount = subtotal * settings.serviceChargeRate;
@@ -224,4 +224,3 @@ export function BillDisplay({ bill, onPrint, isKitchenCopy = false, title }: Bil
     </Card>
   )
 }
-

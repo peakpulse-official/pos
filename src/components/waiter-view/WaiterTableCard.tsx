@@ -2,7 +2,7 @@
 // src/components/waiter-view/WaiterTableCard.tsx
 "use client";
 
-import type { TableDefinition, UserAccount, TableStatus, Bill } from "@/lib/types";
+import type { TableDefinition, UserAccount, TableStatus, Bill, OrderItem } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -39,19 +39,19 @@ interface WaiterTableCardProps {
 }
 
 export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTableCardProps) {
-  const { settings, updateTable, assignMockOrderToTable, clearMockOrderFromTable, currentUser } = useSettings();
+  const { settings, updateTable, assignMockOrderToTable, clearMockOrderFromTable } = useSettings();
   const { toast } = useToast();
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [currentNotes, setCurrentNotes] = useState(table.notes || "");
   const [showBillDialog, setShowBillDialog] = useState(false);
-  const [billDialogContent, setBillDialogContent] = useState<{billData: Omit<Bill, 'id' | 'createdAt' | 'status'>, isKitchen: boolean} | null>(null);
+  const [billDialogContent, setBillDialogContent] = useState<{billData: Omit<Bill, 'id' | 'createdAt' | 'orderStatus' | 'paymentStatus'>, isKitchen: boolean} | null>(null);
 
   const assignedWaiter = allStaff.find(w => w.id === table.waiterId);
+  const selectedUser = allStaff.find(u => u.id === selectedUserId);
   const currentStatusDetails = statusConfig[table.status];
   
-  // A user can manage this table if they are an Admin/Manager, or if they are the staff member assigned to it.
-  const isUserAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Manager' || currentUser?.id === table.waiterId;
-  const isTableOccupied = table.status === 'occupied' || table.status === 'needs_bill';
+  const isUserAllowedToManage = selectedUser?.role === 'Admin' || selectedUser?.role === 'Manager' || selectedUserId === table.waiterId;
+  const isTableOccupiedBySelectedUser = isUserAllowedToManage && (table.status === 'occupied' || table.status === 'needs_bill');
 
   const handleNotesSave = () => {
     updateTable(table.id, { notes: currentNotes });
@@ -158,12 +158,12 @@ export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTable
             </Button>
           )}
 
-          {isTableOccupied && (
+          {isTableOccupiedBySelectedUser && (
             <>
-              <Button onClick={() => prepareAndShowBill(true)} variant="outline" size="sm" className="w-full" disabled={!isUserAllowedToManage}>
+              <Button onClick={() => prepareAndShowBill(true)} variant="outline" size="sm" className="w-full">
                 <Send className="mr-2 h-4 w-4" /> Send Order to Kitchen
               </Button>
-              <Button onClick={() => prepareAndShowBill(false)} variant="default" size="sm" className="w-full" disabled={!isUserAllowedToManage}>
+              <Button onClick={() => prepareAndShowBill(false)} variant="default" size="sm" className="w-full">
                 <Receipt className="mr-2 h-4 w-4" /> Finalize & Print Bill
               </Button>
             </>

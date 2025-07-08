@@ -48,10 +48,11 @@ export interface Order {
   deliveryAddress?: string;
 }
 
-export interface Bill extends Order {
+export interface Bill extends Omit<Order, 'orderStatus' | 'paymentStatus'> {
   billNumber: string;
   printedAt: string; // ISO string for date
 }
+
 
 export interface DailySales {
   date: string; // ISO string for date

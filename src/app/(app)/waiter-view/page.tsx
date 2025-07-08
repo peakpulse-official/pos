@@ -2,7 +2,7 @@
 // src/app/(app)/waiter-view/page.tsx
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useSettings } from "@/contexts/SettingsContext"
 import type { UserAccount } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -18,6 +18,14 @@ export default function WaiterViewPage() {
   const servingStaff = useMemo(() => {
     return settings.users.filter(u => u.role === 'Waiter' || u.role === 'Manager');
   }, [settings.users]);
+
+  // If the logged-in user is a Waiter, automatically select them.
+  // Otherwise, let Manager/Admin choose from the list.
+  useEffect(() => {
+    if (currentUser?.role === 'Waiter') {
+      setSelectedUserId(currentUser.id);
+    }
+  }, [currentUser]);
 
   const selectedUser = servingStaff.find(w => w.id === selectedUserId)
 
@@ -43,7 +51,11 @@ export default function WaiterViewPage() {
         </div>
         {servingStaff.length > 0 && (
           <div className="w-full sm:w-auto">
-            <Select value={selectedUserId || ""} onValueChange={setSelectedUserId}>
+            <Select 
+              value={selectedUserId || ""} 
+              onValueChange={setSelectedUserId}
+              disabled={currentUser.role === 'Waiter'} // Waiters cannot change their view
+            >
               <SelectTrigger className="w-full sm:w-[200px] text-base">
                 <SelectValue placeholder="Select Staff Profile" />
               </SelectTrigger>

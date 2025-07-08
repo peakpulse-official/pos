@@ -316,14 +316,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   // Table Management
-  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes'>) => {
+  const addTable = (tableData: Omit<TableDefinition, 'id' | 'status' | 'currentOrderItems' | 'notes' | 'waiterId'>) => {
     const newTable: TableDefinition = {
-      name: tableData.name,
-      capacity: tableData.capacity,
+      ...tableData,
       id: `table-${Date.now()}`,
       status: 'vacant',
       currentOrderItems: undefined,
       notes: "",
+      waiterId: null,
     };
     updateSettings({ tables: [...settings.tables, newTable] });
   };
