@@ -2,7 +2,7 @@
 // src/components/floor-plan/TableCard.tsx
 "use client";
 
-import type { TableDefinition, Waiter, TableStatus } from "@/lib/types";
+import type { TableDefinition, Waiter, TableStatus, UserAccount } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -38,7 +38,7 @@ export const statusConfig: Record<TableStatus, { icon: LucideIcon, label: string
 
 interface TableCardProps {
   table: TableDefinition;
-  waiters: Waiter[];
+  waiters: UserAccount[];
 }
 
 export function TableCard({ table, waiters }: TableCardProps) {
@@ -57,7 +57,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
 
   const handleWaiterAssign = (waiterId: string | null) => {
     updateTable(table.id, { waiterId: waiterId });
-    const waiterName = waiterId ? waiters.find(w=>w.id === waiterId)?.name : "unassigned";
+    const waiterName = waiterId ? waiters.find(w=>w.id === waiterId)?.username : "unassigned";
     toast({ title: `Table ${table.name} ${waiterId ? 'assigned to' : ''} ${waiterName}` });
   };
 
@@ -85,7 +85,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
       <CardContent className="py-2 px-3 space-y-2">
          <div className="flex items-center text-xs text-muted-foreground">
             <User className="mr-2 h-3.5 w-3.5" />
-            <span>Waiter: {assignedWaiter ? assignedWaiter.name : <span className="italic">Unassigned</span>}</span>
+            <span>Waiter: {assignedWaiter ? assignedWaiter.username : <span className="italic">Unassigned</span>}</span>
         </div>
         
         {isEditingNotes ? (
@@ -157,7 +157,7 @@ export function TableCard({ table, waiters }: TableCardProps) {
                             </DropdownMenuRadioItem>
                             {waiters.map(waiter => (
                                 <DropdownMenuRadioItem key={waiter.id} value={waiter.id}>
-                                    {waiter.name}
+                                    {waiter.username}
                                 </DropdownMenuRadioItem>
                             ))}
                             {waiters.length === 0 && <DropdownMenuItem disabled>No waiters available</DropdownMenuItem>}

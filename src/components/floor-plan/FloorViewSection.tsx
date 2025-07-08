@@ -1,13 +1,19 @@
+
 // src/components/floor-plan/FloorViewSection.tsx
 "use client"
 
 import { useSettings } from "@/contexts/SettingsContext"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TableCardsGrid } from "@/components/floor-plan/TableCardsGrid"; // To be created
+import { TableCardsGrid } from "@/components/floor-plan/TableCardsGrid";
 import { Eye, Info } from "lucide-react";
+import { useMemo } from "react";
 
 export function FloorViewSection() {
   const { settings } = useSettings();
+
+  const servingStaff = useMemo(() => {
+    return settings.users.filter(u => u.role === 'Staff' || u.role === 'Manager');
+  }, [settings.users]);
 
   return (
     <Card className="shadow-lg">
@@ -28,7 +34,7 @@ export function FloorViewSection() {
             <p>Go to the "Manage Tables" tab to add tables to your floor plan.</p>
           </div>
         ) : (
-          <TableCardsGrid tables={settings.tables} waiters={settings.waiters} />
+          <TableCardsGrid tables={settings.tables} waiters={servingStaff} />
         )}
       </CardContent>
     </Card>

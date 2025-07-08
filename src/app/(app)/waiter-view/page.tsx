@@ -2,23 +2,26 @@
 // src/app/(app)/waiter-view/page.tsx
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { useSettings } from "@/contexts/SettingsContext"
-import type { Waiter } from "@/lib/types"
+import type { UserAccount } from "@/lib/types"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { TableCardsGrid } from "@/components/floor-plan/TableCardsGrid" // Admin one can be reused for display
-import { WaiterTableCard } from "@/components/waiter-view/WaiterTableCard" // Waiter specific card
+import { WaiterTableCard } from "@/components/waiter-view/WaiterTableCard"
 import { Clipboard, Info, UserCheck } from "lucide-react" 
 import { Skeleton } from "@/components/ui/skeleton"
 
 export default function WaiterViewPage() {
-  const { settings, isLoading: settingsLoading } = useSettings()
-  const [selectedWaiterId, setSelectedWaiterId] = useState<string | null>(null)
+  const { settings, isLoading: settingsLoading, currentUser } = useSettings()
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null)
 
-  const selectedWaiter = settings.waiters.find(w => w.id === selectedWaiterId)
+  const servingStaff = useMemo(() => {
+    return settings.users.filter(u => u.role === 'Staff' || u.role === 'Manager');
+  }, [settings.users]);
 
-  if (settingsLoading) {
+  const selectedUser = servingStaff.find(w => w.id === selectedUserId)
+
+  if (settingsLoading || !currentUser) {
     return (
       <div className="space-y-6">
         <div className="flex items-center space-x-3 mb-4">
@@ -38,16 +41,16 @@ export default function WaiterViewPage() {
             <Clipboard className="h-8 w-8 text-primary" />
             <h1 className="text-3xl font-headline font-bold text-primary">Waiter Live View</h1>
         </div>
-        {settings.waiters.length > 0 && (
+        {servingStaff.length > 0 && (
           <div className="w-full sm:w-auto">
-            <Select value={selectedWaiterId || ""} onValueChange={setSelectedWaiterId}>
+            <Select value={selectedUserId || ""} onValueChange={setSelectedUserId}>
               <SelectTrigger className="w-full sm:w-[200px] text-base">
-                <SelectValue placeholder="Select Waiter Profile" />
+                <SelectValue placeholder="Select Staff Profile" />
               </SelectTrigger>
               <SelectContent>
-                {settings.waiters.map((waiter) => (
-                  <SelectItem key={waiter.id} value={waiter.id}>
-                    {waiter.name}
+                {servingStaff.map((staff) => (
+                  <SelectItem key={staff.id} value={staff.id}>
+                    {staff.username} ({staff.role})
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -56,34 +59,34 @@ export default function WaiterViewPage() {
         )}
       </div>
 
-      {settings.waiters.length === 0 ? (
+      {servingStaff.length === 0 ? (
          <Card className="shadow-lg">
             <CardHeader className="items-center text-center">
                 <UserCheck className="h-12 w-12 text-muted-foreground mb-3"/>
-                <CardTitle className="font-headline text-xl">No Waiter Profiles Configured</CardTitle>
+                <CardTitle className="font-headline text-xl">No Staff or Manager Accounts</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
                 <p className="text-muted-foreground">
-                Please ask an Administrator to add waiter profiles in the "Floor Plan > Manage Waiters" section.
+                Please ask an Administrator to add 'Staff' or 'Manager' accounts in Settings.
                 </p>
             </CardContent>
          </Card>
-      ) : !selectedWaiterId ? (
+      ) : !selectedUserId ? (
         <Card className="shadow-lg">
             <CardHeader className="items-center text-center">
                 <Info className="h-12 w-12 text-muted-foreground mb-3"/>
-                <CardTitle className="font-headline text-xl">Select Your Profile</CardTitle>
+                <CardTitle className="font-headline text-xl">Select a Staff Profile</CardTitle>
             </CardHeader>
             <CardContent className="text-center">
                 <p className="text-muted-foreground">
-                Please select your waiter profile from the dropdown above to view and manage tables.
+                Please select a staff profile from the dropdown to view and manage tables.
                 </p>
             </CardContent>
         </Card>
       ) : (
         <>
             <p className="text-lg text-muted-foreground">
-                Viewing as: <span className="font-semibold text-primary">{selectedWaiter?.name}</span>
+                Viewing as: <span className="font-semibold text-primary">{selectedUser?.username}</span>
             </p>
             {settings.tables.length === 0 ? (
             <Card className="shadow-lg">
@@ -93,7 +96,7 @@ export default function WaiterViewPage() {
                 </CardHeader>
                 <CardContent className="text-center">
                     <p className="text-muted-foreground">
-                    Once tables are added by an Administrator in "Floor Plan > Manage Tables", they will appear here for you to manage.
+                    An Administrator can add tables in "Floor Plan &gt; Manage Tables".
                     </p>
                 </CardContent>
             </Card>
@@ -103,8 +106,8 @@ export default function WaiterViewPage() {
                         <WaiterTableCard 
                             key={table.id} 
                             table={table} 
-                            allWaiters={settings.waiters} 
-                            currentWaiterId={selectedWaiterId} 
+                            allStaff={servingStaff} 
+                            selectedUserId={selectedUserId} 
                         />
                     ))}
                 </div>
@@ -114,4 +117,3 @@ export default function WaiterViewPage() {
     </div>
   )
 }
-

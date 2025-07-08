@@ -99,10 +99,11 @@ export const defaultAppSettings: AppSettings = {
   printers: [],
   defaultPrinterId: null,
   users: [ 
-    { id: 'admin-default', username: 'admin@example.com', password: 'password123', role: 'Admin', hourlyRate: 0 }
+    { id: 'admin-default', username: 'admin@example.com', password: 'password123', role: 'Admin', hourlyRate: 0 },
+     { id: 'staff-default', username: 'staff@example.com', password: 'password123', role: 'Staff', hourlyRate: 200 },
   ],
   tables: [],
-  waiters: [],
+  waiters: [], // This is now deprecated and will be removed.
   categories: defaultCategories,
   currentUser: null,
   timeLogs: [],

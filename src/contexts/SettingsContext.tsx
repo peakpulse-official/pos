@@ -39,10 +39,7 @@ interface SettingsContextType {
   removeTable: (tableId: string) => void;
   assignMockOrderToTable: (tableId: string) => void;
   clearMockOrderFromTable: (tableId: string) => void;
-  // Waiters
-  addWaiter: (waiterData: Omit<Waiter, 'id'>) => void;
-  updateWaiter: (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => void;
-  removeWaiter: (waiterId: string) => void;
+  // Waiters (DEPRECATED - now handled via Users)
   // Categories
   addCategory: (categoryData: Omit<MenuCategory, 'id'>) => void;
   updateCategory: (categoryId: string, updates: Partial<Omit<MenuCategory, 'id'>>) => void;
@@ -94,6 +91,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         categories: (parsedSettings.categories && parsedSettings.categories.length > 0) ? parsedSettings.categories : defaultAppSettings.categories,
         currentUser: parsedSettings.currentUser || null, 
         timeLogs: timeLogsList,
+        waiters: [], // Deprecate waiters
       };
       
       setSettings(finalSettings);
@@ -106,6 +104,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123', hourlyRate: u.hourlyRate || 0 })),
         currentUser: null,
         timeLogs: (defaultAppSettings.timeLogs || []).map(log => ({...log, totalBreakDurationMinutes: 0, hourlyRate: log.hourlyRate || undefined})),
+        waiters: [], // Deprecate waiters
       };
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettings));
       setSettings(fallbackSettings);
@@ -117,13 +116,15 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
   const persistSettings = (updatedSettings: AppSettings) => {
     try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(updatedSettings));
+      const settingsToSave = { ...updatedSettings };
+      delete (settingsToSave as any).waiters; // Don't persist deprecated waiters list
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(settingsToSave));
     } catch (error) {
       console.error("Failed to save settings to localStorage", error);
     }
   };
 
-  const updateSettings = (newSettingsPartial: Partial<AppSettings>) => {
+  const updateSettings = (newSettingsPartial: Partial<Omit<AppSettings, 'waiters'>>) => {
     setSettings(prevSettings => {
       const effectiveCurrentUser = newSettingsPartial.currentUser === undefined ? prevSettings.currentUser : newSettingsPartial.currentUser;
       const updated = { ...prevSettings, ...newSettingsPartial, currentUser: effectiveCurrentUser };
@@ -307,7 +308,11 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     }
     const updatedUsers = settings.users.filter(u => u.id !== userId);
     const updatedTimeLogs = settings.timeLogs.filter(log => log.userId !== userId); 
-    updateSettings({ users: updatedUsers, timeLogs: updatedTimeLogs });
+    // Unassign user from any tables
+    const unassignedTables = settings.tables.map(t =>
+      t.waiterId === userId ? { ...t, waiterId: null } : t
+    );
+    updateSettings({ users: updatedUsers, timeLogs: updatedTimeLogs, tables: unassignedTables });
   };
 
   // Table Management
@@ -347,27 +352,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
       t.id === tableId ? { ...t, currentOrderItems: undefined } : t
     );
     updateSettings({ tables: updatedTables });
-  };
-
-  // Waiter Management
-  const addWaiter = (waiterData: Omit<Waiter, 'id'>) => {
-    const newWaiter: Waiter = { ...waiterData, id: `waiter-${Date.now()}` };
-    updateSettings({ waiters: [...settings.waiters, newWaiter] });
-  };
-
-  const updateWaiter = (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => {
-    const updatedWaiters = settings.waiters.map(w =>
-      w.id === waiterId ? { ...w, ...updates } : w
-    );
-    updateSettings({ waiters: updatedWaiters });
-  };
-
-  const removeWaiter = (waiterId: string) => {
-    const unassignedTables = settings.tables.map(t =>
-      t.waiterId === waiterId ? { ...t, waiterId: null } : t
-    );
-    const updatedWaiters = settings.waiters.filter(w => w.id !== waiterId);
-    updateSettings({ waiters: updatedWaiters, tables: unassignedTables });
   };
 
   // Category Management
@@ -421,9 +405,6 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         removeTable,
         assignMockOrderToTable,
         clearMockOrderFromTable,
-        addWaiter,
-        updateWaiter,
-        removeWaiter,
         addCategory,
         updateCategory,
         removeCategory,

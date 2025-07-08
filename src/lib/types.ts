@@ -65,7 +65,7 @@ export interface PrinterDevice {
 
 export type UserRole = "Admin" | "Staff" | "Manager";
 export interface UserAccount {
-  id: string;
+  id:string;
   username: string; 
   password?: string; 
   role: UserRole;
@@ -105,6 +105,8 @@ export interface TableDefinition {
   currentOrderItems?: OrderItem[]; 
 }
 
+// This is now deprecated and will be removed in future steps.
+// For now, it's removed from the AppSettings type.
 export interface Waiter {
   id: string;
   name: string;
@@ -121,10 +123,10 @@ export interface AppSettings {
   defaultPrinterId: string | null;
   users: UserAccount[];
   tables: TableDefinition[];
-  waiters: Waiter[];
   categories: MenuCategory[];
   currentUser: AuthenticatedUser | null; 
   timeLogs: TimeLog[]; 
+  waiters: Waiter[]; // Kept for now to avoid breaking other parts, but logically deprecated
 }
 
 export const MOCK_WAITER_ORDER_ITEMS: OrderItem[] = [

@@ -2,19 +2,18 @@
 // src/components/waiter-view/WaiterTableCard.tsx
 "use client";
 
-import type { TableDefinition, Waiter, TableStatus, OrderItem, Bill } from "@/lib/types";
+import type { TableDefinition, UserAccount, TableStatus, Bill } from "@/lib/types";
 import { useSettings } from "@/contexts/SettingsContext";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
-import { useState }
-from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { statusConfig } from "@/components/floor-plan/TableCard"; // Reuse statusConfig
-import { Users, User, Clock, CheckCircle, Utensils, MessageSquare, Edit3, Send, Receipt, Handshake } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger, DialogClose } from "@/components/ui/dialog";
+import { User, MessageSquare, Edit3, Send, Receipt, Handshake } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
 import { BillDisplay, generateAdHocBillStructure } from "@/components/billing/BillDisplay";
 import { MOCK_WAITER_ORDER_ITEMS } from "@/lib/types"; 
 import {
@@ -35,22 +34,24 @@ import {
 
 interface WaiterTableCardProps {
   table: TableDefinition;
-  allWaiters: Waiter[];
-  currentWaiterId: string | null;
+  allStaff: UserAccount[];
+  selectedUserId: string | null;
 }
 
-export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTableCardProps) {
-  const { settings, updateTable, assignMockOrderToTable, clearMockOrderFromTable } = useSettings();
+export function WaiterTableCard({ table, allStaff, selectedUserId }: WaiterTableCardProps) {
+  const { settings, updateTable, assignMockOrderToTable, clearMockOrderFromTable, currentUser } = useSettings();
   const { toast } = useToast();
   const [isEditingNotes, setIsEditingNotes] = useState(false);
   const [currentNotes, setCurrentNotes] = useState(table.notes || "");
   const [showBillDialog, setShowBillDialog] = useState(false);
   const [billDialogContent, setBillDialogContent] = useState<{billData: Omit<Bill, 'id' | 'createdAt' | 'status'>, isKitchen: boolean} | null>(null);
 
-
-  const assignedWaiter = allWaiters.find(w => w.id === table.waiterId);
+  const assignedWaiter = allStaff.find(w => w.id === table.waiterId);
   const currentStatusDetails = statusConfig[table.status];
-  const isAssignedToCurrentUser = table.waiterId === currentWaiterId;
+  
+  // A user can manage this table if they are an Admin/Manager, or if they are the staff member assigned to it.
+  const isUserAllowedToManage = currentUser?.role === 'Admin' || currentUser?.role === 'Manager' || currentUser?.id === table.waiterId;
+  const isTableOccupied = table.status === 'occupied' || table.status === 'needs_bill';
 
   const handleNotesSave = () => {
     updateTable(table.id, { notes: currentNotes });
@@ -58,25 +59,25 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
     setIsEditingNotes(false);
   };
 
-  const handleAssignToSelf = () => {
-    if (currentWaiterId) {
-      updateTable(table.id, { waiterId: currentWaiterId, status: 'occupied' });
+  const handleAssignTable = () => {
+    if (selectedUserId) {
+      updateTable(table.id, { waiterId: selectedUserId, status: 'occupied' });
       assignMockOrderToTable(table.id); 
-      toast({ title: `Table ${table.name} assigned to you and marked as occupied.` });
+      const selectedUserName = allStaff.find(s => s.id === selectedUserId)?.username || 'the selected staff';
+      toast({ title: `Table ${table.name} assigned to ${selectedUserName} and marked as occupied.` });
     } else {
-      toast({ title: "Error", description: "No waiter selected.", variant: "destructive" });
+      toast({ title: "Error", description: "No staff profile selected.", variant: "destructive" });
     }
   };
   
   const handleStatusChange = (newStatus: TableStatus) => {
     updateTable(table.id, { status: newStatus });
-    if (newStatus === 'vacant' || newStatus === 'needs_cleaning') {
+    if (newStatus === 'vacant') {
       clearMockOrderFromTable(table.id); 
-      if (newStatus === 'vacant' && table.waiterId === currentWaiterId) {
-         updateTable(table.id, { waiterId: null }); 
-      }
+      updateTable(table.id, { waiterId: null });
+    } else if (newStatus === 'needs_cleaning') {
+       clearMockOrderFromTable(table.id);
     } else if (newStatus === 'occupied' && !table.currentOrderItems) {
-      // If table becomes occupied and has no items (e.g. from admin panel), assign mock items
       assignMockOrderToTable(table.id);
     }
     toast({ title: `Table ${table.name} status updated to ${statusConfig[newStatus].label}.` });
@@ -116,7 +117,7 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
         <CardContent className="py-2 px-3 space-y-2 flex-grow">
           <div className="flex items-center text-xs text-muted-foreground">
               <User className="mr-2 h-3.5 w-3.5" />
-              <span>Waiter: {assignedWaiter ? assignedWaiter.name : <span className="italic">Unassigned</span>}</span>
+              <span>Staff: {assignedWaiter ? assignedWaiter.username : <span className="italic">Unassigned</span>}</span>
           </div>
           
           {isEditingNotes ? (
@@ -134,77 +135,76 @@ export function WaiterTableCard({ table, allWaiters, currentWaiterId }: WaiterTa
             </div>
           ) : (
             <div 
-              className="text-xs text-muted-foreground min-h-[2.5rem] p-1.5 rounded-sm hover:bg-muted/50 cursor-pointer flex items-start space-x-1.5"
-              onClick={() => setIsEditingNotes(true)}
-              title="Click to edit notes"
+              className={cn(
+                "text-xs text-muted-foreground min-h-[2.5rem] p-1.5 rounded-sm flex items-start space-x-1.5",
+                isUserAllowedToManage && "hover:bg-muted/50 cursor-pointer"
+              )}
+              onClick={() => isUserAllowedToManage && setIsEditingNotes(true)}
+              title={isUserAllowedToManage ? "Click to edit notes" : "Notes"}
             >
               <MessageSquare className="h-3.5 w-3.5 mt-0.5 shrink-0" />
               {table.notes ? (
                   <p className="whitespace-pre-wrap line-clamp-2 flex-grow">{table.notes}</p>
               ) : (
-                  <p className="italic flex-grow">No notes. Click to add.</p>
+                  <p className="italic flex-grow">No notes.</p>
               )}
             </div>
           )}
         </CardContent>
         <CardFooter className="py-2 px-3 flex flex-col items-stretch space-y-1.5">
-          {table.status === 'vacant' && currentWaiterId && (
-            <Button onClick={handleAssignToSelf} size="sm" className="w-full">
-              <Handshake className="mr-2 h-4 w-4" /> Assign to Me & Occupy
+          {table.status === 'vacant' && selectedUserId && (
+            <Button onClick={handleAssignTable} size="sm" className="w-full">
+              <Handshake className="mr-2 h-4 w-4" /> Assign & Occupy
             </Button>
           )}
 
-          {(table.status === 'occupied' || table.status === 'needs_bill') && isAssignedToCurrentUser && (
+          {isTableOccupied && (
             <>
-              <Button onClick={() => prepareAndShowBill(true)} variant="outline" size="sm" className="w-full">
+              <Button onClick={() => prepareAndShowBill(true)} variant="outline" size="sm" className="w-full" disabled={!isUserAllowedToManage}>
                 <Send className="mr-2 h-4 w-4" /> Send Order to Kitchen
               </Button>
-              <Button onClick={() => prepareAndShowBill(false)} variant="default" size="sm" className="w-full">
+              <Button onClick={() => prepareAndShowBill(false)} variant="default" size="sm" className="w-full" disabled={!isUserAllowedToManage}>
                 <Receipt className="mr-2 h-4 w-4" /> Finalize & Print Bill
               </Button>
             </>
           )}
 
-          {currentWaiterId && (isAssignedToCurrentUser || table.status === 'vacant') && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="w-full text-xs">
-                  <Edit3 className="mr-1 h-3 w-3" /> More Actions
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel>Table Actions for {table.name}</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuSub>
-                    <DropdownMenuSubTrigger disabled={!isAssignedToCurrentUser && table.status !== 'vacant'}>
-                        <currentStatusDetails.icon className="mr-2 h-4 w-4" />
-                        <span>Change Status</span>
-                    </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
-                        <DropdownMenuSubContent>
-                            <DropdownMenuRadioGroup 
-                                value={table.status} 
-                                onValueChange={(value) => handleStatusChange(value as TableStatus)}
-                            >
-                                {Object.entries(statusConfig).map(([statusKey, config]) => {
-                                    if (statusKey === 'occupied' && !isAssignedToCurrentUser && table.status !== 'vacant') return null; 
-                                    return (
-                                        <DropdownMenuRadioItem key={statusKey} value={statusKey}>
-                                            <config.icon className={cn("mr-2 h-4 w-4", config.colorClass)} /> {config.label}
-                                        </DropdownMenuRadioItem>
-                                    );
-                                })}
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuPortal>
-                </DropdownMenuSub>
-                <DropdownMenuItem onClick={() => setIsEditingNotes(true)} disabled={!isAssignedToCurrentUser && table.status !== 'vacant'}>
-                    <MessageSquare className="mr-2 h-4 w-4" />
-                    <span>{table.notes ? "Edit Note" : "Add Note"}</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="w-full text-xs" disabled={!isUserAllowedToManage}>
+                <Edit3 className="mr-1 h-3 w-3" /> More Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>Table Actions for {table.name}</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuSub>
+                  <DropdownMenuSubTrigger>
+                      <currentStatusDetails.icon className="mr-2 h-4 w-4" />
+                      <span>Change Status</span>
+                  </DropdownMenuSubTrigger>
+                  <DropdownMenuPortal>
+                      <DropdownMenuSubContent>
+                          <DropdownMenuRadioGroup 
+                              value={table.status} 
+                              onValueChange={(value) => handleStatusChange(value as TableStatus)}
+                          >
+                              {Object.entries(statusConfig).map(([statusKey, config]) => (
+                                  <DropdownMenuRadioItem key={statusKey} value={statusKey}>
+                                      <config.icon className={cn("mr-2 h-4 w-4", config.colorClass)} /> {config.label}
+                                  </DropdownMenuRadioItem>
+                              ))}
+                          </DropdownMenuRadioGroup>
+                      </DropdownMenuSubContent>
+                  </DropdownMenuPortal>
+              </DropdownMenuSub>
+              <DropdownMenuItem onClick={() => setIsEditingNotes(true)}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  <span>{table.notes ? "Edit Note" : "Add Note"}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
         </CardFooter>
       </Card>
 
