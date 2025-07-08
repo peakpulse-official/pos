@@ -1,9 +1,10 @@
+
 // src/app/(app)/menu/page.tsx
 "use client"
 
 import { useState, useMemo, useEffect } from "react"
 import Image from "next/image"
-import { menuItems as defaultMenuItems, categories as defaultCategories } from "@/lib/data"
+import { menuItems as defaultMenuItems } from "@/lib/data"
 import type { MenuItem as MenuItemType, MenuCategory } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,7 +26,7 @@ import {
 } from "@/components/ui/dialog"
 import { MenuItemForm } from "@/components/menu/MenuItemForm"
 import { useToast } from "@/hooks/use-toast"
-import { PlusCircle, Edit, Trash2, Search, PackageOpen, ReceiptText } from "lucide-react"
+import { PlusCircle, Edit, Trash2, Search, PackageOpen, ReceiptText, FolderKanban } from "lucide-react"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,19 +42,23 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useSettings } from "@/contexts/SettingsContext"
+import { DynamicIcon } from "@/components/DynamicIcon"
+import { ManageCategoriesDialog } from "@/components/menu/ManageCategoriesDialog"
 
 
 const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
 
 export default function MenuPage() {
+  const { settings, isLoading: settingsLoading } = useSettings();
   const [menuItems, setMenuItems] = useState<MenuItemType[]>([])
-  const [categories, setCategories] = useState<MenuCategory[]>(defaultCategories);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<MenuItemType | undefined>(undefined)
   const [itemToDelete, setItemToDelete] = useState<MenuItemType | null>(null);
-  const [recipeItem, setRecipeItem] = useState<MenuItemType | null>(null); // For recipe dialog
+  const [recipeItem, setRecipeItem] = useState<MenuItemType | null>(null);
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
 
   const { toast } = useToast()
 
@@ -83,7 +88,7 @@ export default function MenuPage() {
   };
 
   const getCategoryName = (categoryId: string) => {
-    return categories.find(cat => cat.id === categoryId)?.name || "Unknown"
+    return settings.categories.find(cat => cat.id === categoryId)?.name || "Unknown"
   }
 
   const handleFormSubmit = (data: Omit<MenuItemType, "id"> & { id?: string }) => {
@@ -135,11 +140,11 @@ export default function MenuPage() {
         grouped[item.category].push(item);
       });
     return grouped;
-  }, [menuItems, searchTerm, categories]);
+  }, [menuItems, searchTerm, settings.categories]);
 
   const activeCategories = useMemo(() => {
-    return categories.filter(cat => itemsByCategory[cat.id] && itemsByCategory[cat.id].length > 0);
-  }, [itemsByCategory, categories]);
+    return settings.categories.filter(cat => itemsByCategory[cat.id] && itemsByCategory[cat.id].length > 0);
+  }, [itemsByCategory, settings.categories]);
 
   const getRecipeSnippet = (recipe?: string, maxLength = 60) => {
     if (!recipe) return "";
@@ -148,7 +153,7 @@ export default function MenuPage() {
   }
 
 
-  if (isLoading) {
+  if (isLoading || settingsLoading) {
     return (
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -170,10 +175,15 @@ export default function MenuPage() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
         <h1 className="text-3xl font-headline font-bold text-primary">Menu Management</h1>
-        <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingItem(undefined); }}>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={() => setIsCategoryDialogOpen(true)}>
+            <FolderKanban className="mr-2 h-5 w-5" /> Manage Categories
+          </Button>
           <Button variant="default" onClick={() => { setEditingItem(undefined); setIsFormOpen(true); }}>
             <PlusCircle className="mr-2 h-5 w-5" /> Add New Item
           </Button>
+        </div>
+        <Dialog open={isFormOpen} onOpenChange={(open) => { setIsFormOpen(open); if (!open) setEditingItem(undefined); }}>
           <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="font-headline text-xl">{editingItem ? "Edit Menu Item" : "Add New Menu Item"}</DialogTitle>
@@ -186,6 +196,7 @@ export default function MenuPage() {
             />
           </DialogContent>
         </Dialog>
+        <ManageCategoriesDialog isOpen={isCategoryDialogOpen} onClose={() => setIsCategoryDialogOpen(false)} />
       </div>
 
       <div className="relative">
@@ -205,7 +216,7 @@ export default function MenuPage() {
             <AccordionItem value={category.id} key={category.id} className="border bg-card shadow-md rounded-lg">
               <AccordionTrigger className="px-6 py-4 text-lg font-headline hover:no-underline">
                 <div className="flex items-center">
-                  {category.icon && <category.icon className="mr-3 h-6 w-6 text-primary" />}
+                  {category.iconName && <DynamicIcon name={category.iconName} className="mr-3 h-6 w-6 text-primary" />}
                   {category.name} ({itemsByCategory[category.id]?.length || 0})
                 </div>
               </AccordionTrigger>

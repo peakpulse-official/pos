@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { categories } from "@/lib/data"
+import { useSettings } from "@/contexts/SettingsContext"
 
 const menuItemSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters." }),
@@ -45,6 +45,8 @@ interface MenuItemFormProps {
 }
 
 export function MenuItemForm({ initialData, onSubmit, onCancel, isEditing }: MenuItemFormProps) {
+  const { settings } = useSettings();
+
   const form = useForm<MenuItemFormValues>({
     resolver: zodResolver(menuItemSchema),
     defaultValues: {
@@ -104,7 +106,7 @@ export function MenuItemForm({ initialData, onSubmit, onCancel, isEditing }: Men
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {categories.map((cat: MenuCategory) => (
+                  {settings.categories.map((cat: MenuCategory) => (
                     <SelectItem key={cat.id} value={cat.id}>
                       {cat.name}
                     </SelectItem>

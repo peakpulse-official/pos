@@ -15,7 +15,7 @@ export interface MenuItem {
 export interface MenuCategory {
   id: string;
   name: string;
-  icon?: LucideIcon;
+  iconName?: string;
 }
 
 export interface OrderItem extends MenuItem {
@@ -122,6 +122,7 @@ export interface AppSettings {
   users: UserAccount[];
   tables: TableDefinition[];
   waiters: Waiter[];
+  categories: MenuCategory[];
   currentUser: AuthenticatedUser | null; 
   timeLogs: TimeLog[]; 
 }
@@ -131,4 +132,3 @@ export const MOCK_WAITER_ORDER_ITEMS: OrderItem[] = [
   { id: 'item5', name: 'Chicken Mo:Mo (Steamed)', price: 250, category: 'cat2', quantity: 2, description: 'Nepali steamed chicken dumplings.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'momo dumplings' },
   { id: 'item3', name: 'Nepali Tea (Chiya)', price: 80, category: 'cat1', quantity: 1, description: 'Traditional Nepali milk tea.', imageUrl: 'https://placehold.co/150x100.png', dataAiHint: 'tea cup' },
 ];
-

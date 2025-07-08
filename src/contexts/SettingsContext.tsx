@@ -2,13 +2,15 @@
 // src/contexts/SettingsContext.tsx
 "use client"
 
-import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, AuthenticatedUser, TimeLog, UserRole, OrderItem, OrderType } from '@/lib/types';
+import type { AppSettings, PrinterDevice, UserAccount, TableDefinition, Waiter, AuthenticatedUser, TimeLog, UserRole, OrderItem, OrderType, MenuCategory } from '@/lib/types';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { MOCK_WAITER_ORDER_ITEMS } from '@/lib/types';
 import { defaultAppSettings } from '@/lib/data';
 import { format, differenceInMinutes, parseISO } from 'date-fns';
 
 const LOCAL_STORAGE_KEY = 'annapurnaAppSettings';
+const MENU_ITEMS_STORAGE_KEY = "annapurnaMenuItems";
+
 
 interface SettingsContextType {
   settings: AppSettings;
@@ -41,6 +43,10 @@ interface SettingsContextType {
   addWaiter: (waiterData: Omit<Waiter, 'id'>) => void;
   updateWaiter: (waiterId: string, updates: Partial<Omit<Waiter, 'id'>>) => void;
   removeWaiter: (waiterId: string) => void;
+  // Categories
+  addCategory: (categoryData: Omit<MenuCategory, 'id'>) => void;
+  updateCategory: (categoryId: string, updates: Partial<Omit<MenuCategory, 'id'>>) => void;
+  removeCategory: (categoryId: string) => boolean;
   isLoading: boolean;
 }
 
@@ -85,6 +91,7 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         ...parsedSettings,    
         users: usersList,      
         tables: tablesList,     
+        categories: (parsedSettings.categories && parsedSettings.categories.length > 0) ? parsedSettings.categories : defaultAppSettings.categories,
         currentUser: parsedSettings.currentUser || null, 
         timeLogs: timeLogsList,
       };
@@ -94,14 +101,14 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
 
     } catch (error) {
       console.error("Failed to load settings from localStorage, resetting to defaults.", error);
-      const fallbackSettingsWithPasswordsAndRates = {
+      const fallbackSettings = {
         ...defaultAppSettings,
         users: defaultAppSettings.users.map(u => ({ ...u, password: u.password || 'password123', hourlyRate: u.hourlyRate || 0 })),
         currentUser: null,
         timeLogs: (defaultAppSettings.timeLogs || []).map(log => ({...log, totalBreakDurationMinutes: 0, hourlyRate: log.hourlyRate || undefined})),
       };
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettingsWithPasswordsAndRates));
-      setSettings(fallbackSettingsWithPasswordsAndRates);
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(fallbackSettings));
+      setSettings(fallbackSettings);
       setCurrentUser(null);
     }
     setIsLoading(false);
@@ -363,6 +370,34 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
     updateSettings({ waiters: updatedWaiters, tables: unassignedTables });
   };
 
+  // Category Management
+  const addCategory = (categoryData: Omit<MenuCategory, 'id'>) => {
+    const newCategory: MenuCategory = { ...categoryData, id: `cat-${Date.now()}` };
+    updateSettings({ categories: [...settings.categories, newCategory] });
+  };
+
+  const updateCategory = (categoryId: string, updates: Partial<Omit<MenuCategory, 'id'>>) => {
+    const updatedCategories = settings.categories.map(c =>
+      c.id === categoryId ? { ...c, ...updates } : c
+    );
+    updateSettings({ categories: updatedCategories });
+  };
+
+  const removeCategory = (categoryId: string): boolean => {
+    const storedItemsRaw = localStorage.getItem(MENU_ITEMS_STORAGE_KEY);
+    const menuItems: OrderItem[] = storedItemsRaw ? JSON.parse(storedItemsRaw) : [];
+    const isCategoryInUse = menuItems.some(item => item.category === categoryId);
+
+    if (isCategoryInUse) {
+      return false; // Indicate failure
+    }
+
+    const updatedCategories = settings.categories.filter(c => c.id !== categoryId);
+    updateSettings({ categories: updatedCategories });
+    return true; // Indicate success
+  };
+
+
   return (
     <SettingsContext.Provider value={{
         settings,
@@ -389,6 +424,9 @@ export const SettingsProvider = ({ children }: { children: ReactNode }) => {
         addWaiter,
         updateWaiter,
         removeWaiter,
+        addCategory,
+        updateCategory,
+        removeCategory,
         isLoading
       }}>
       {children}

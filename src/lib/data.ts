@@ -1,14 +1,13 @@
 
-import type { MenuCategory, MenuItem, Order, DailySales, AppSettings } from './types';
-import { Coffee, Sandwich, Pizza, IceCream, Utensils, Zap } from 'lucide-react';
+import type { MenuItem, Order, DailySales, AppSettings, MenuCategory } from './types';
 
-export const categories: MenuCategory[] = [
-  { id: 'cat1', name: 'Beverages', icon: Coffee },
-  { id: 'cat2', name: 'Snacks', icon: Sandwich },
-  { id: 'cat3', name: 'Main Course', icon: Pizza },
-  { id: 'cat4', name: 'Desserts', icon: IceCream },
-  { id: 'cat5', name: 'Nepali Specials', icon: Utensils },
-  { id: 'cat6', name: 'Quick Bites', icon: Zap },
+const defaultCategories: MenuCategory[] = [
+  { id: 'cat1', name: 'Beverages', iconName: 'Coffee' },
+  { id: 'cat2', name: 'Snacks', iconName: 'Sandwich' },
+  { id: 'cat3', name: 'Main Course', iconName: 'Pizza' },
+  { id: 'cat4', name: 'Desserts', iconName: 'IceCream' },
+  { id: 'cat5', name: 'Nepali Specials', iconName: 'Utensils' },
+  { id: 'cat6', name: 'Quick Bites', iconName: 'Zap' },
 ];
 
 export const menuItems: MenuItem[] = [
@@ -82,11 +81,11 @@ export const mockDailySales: DailySales = {
   totalRevenue: initialOrders.reduce((sum, order) => sum + (order.status === 'paid' ? order.total : 0), 0),
   totalOrders: initialOrders.filter(order => order.status === 'paid').length,
   popularItems: [
-    { itemId: 'item2', name: 'Latte', quantitySold: 10 },
-    { itemId: 'item5', name: 'Chicken Mo:Mo (Steamed)', quantitySold: 8 },
-    { itemId: 'item8', name: 'Dal Bhat Tarkari (Veg)', quantitySold: 7 },
-    { itemId: 'item4', name: 'Samosa (2 pcs)', quantitySold: 12 },
-    { itemId: 'item3', name: 'Nepali Tea (Chiya)', quantitySold: 15 },
+    { itemId: 'item2', name: 'Latte', quantitySold: 10, revenue: 2000 },
+    { itemId: 'item5', name: 'Chicken Mo:Mo (Steamed)', quantitySold: 8, revenue: 2000 },
+    { itemId: 'item8', name: 'Dal Bhat Tarkari (Veg)', quantitySold: 7, revenue: 2800 },
+    { itemId: 'item4', name: 'Samosa (2 pcs)', quantitySold: 12, revenue: 1200 },
+    { itemId: 'item3', name: 'Nepali Tea (Chiya)', quantitySold: 15, revenue: 1200 },
   ].sort((a,b) => b.quantitySold - a.quantitySold),
 };
 
@@ -104,6 +103,7 @@ export const defaultAppSettings: AppSettings = {
   ],
   tables: [],
   waiters: [],
+  categories: defaultCategories,
   currentUser: null,
   timeLogs: [],
 };
